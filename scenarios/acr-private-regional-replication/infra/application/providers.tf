@@ -14,6 +14,7 @@ terraform {
 
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
 }
 
 # 중앙(connectivity) 구독의 Private DNS Zone을 data 블록으로 조회하기 위한 alias provider.

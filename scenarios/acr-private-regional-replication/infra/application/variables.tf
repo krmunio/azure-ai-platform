@@ -1,3 +1,9 @@
+variable "subscription_id" {
+  type        = string
+  default     = null
+  description = "워크로드(application)를 배포할 구독 ID. null이면 환경변수/기본 CLI 컨텍스트를 사용."
+}
+
 variable "location" {
   type        = string
   default     = "koreacentral"
