@@ -1,0 +1,7 @@
+location    = "koreacentral"
+name_prefix = "acrpriv"
+
+# resource_group_name = "my-acr-rg"
+# vnet_address_space  = ["10.50.0.0/16"]
+# pe_subnet_prefix    = ["10.50.1.0/24"]
+# acr_sku             = "Premium"
