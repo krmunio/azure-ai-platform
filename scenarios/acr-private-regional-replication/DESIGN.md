@@ -21,6 +21,7 @@
 ```
 scenarios/
   acr-private-regional-replication/
+    DESIGN.md               # 이 설계 문서
     infra/
       providers.tf            # azurerm provider + required_version
       variables.tf            # location, prefix, address space 등 입력값
