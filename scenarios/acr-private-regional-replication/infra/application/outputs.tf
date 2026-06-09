@@ -22,3 +22,8 @@ output "private_endpoint_ip" {
   value       = azurerm_private_endpoint.acr.private_service_connection[0].private_ip_address
   description = "ACR Private Endpoint의 사설 IP"
 }
+
+output "vnet_id" {
+  value       = azurerm_virtual_network.this.id
+  description = "spoke VNet ID. platform의 linked_vnet_ids에 넣어 중앙 zone에 연결할 때 사용."
+}

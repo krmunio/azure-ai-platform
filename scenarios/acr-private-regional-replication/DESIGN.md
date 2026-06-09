@@ -23,38 +23,44 @@
 ```
 scenarios/
   acr-private-regional-replication/
-    DESIGN.md               # 이 설계 문서
-    infra/
-      providers.tf            # azurerm provider + required_version
-      variables.tf            # location, prefix, address space 등 입력값
-      main.tf                 # 모든 리소스 정의
-      outputs.tf              # acr login server/id, PE IP, RG name 등
-      terraform.tfvars.example
+    DESIGN.md                 # 이 설계 문서
+    PLAN.md                   # 구현 계획
     README.md                 # 시나리오 설명 + 배포/재현 절차
+    infra/
+      platform/               # 중앙(connectivity) 레이어 — Private DNS Zone 관리
+        providers.tf  variables.tf  main.tf  outputs.tf  terraform.tfvars.example
+      application/            # 워크로드 레이어 — ACR + VNet + Private Endpoint
+        providers.tf  variables.tf  main.tf  outputs.tf  terraform.tfvars.example
 README.md                     # repo 전체 안내 + 시나리오 인덱스
 ```
 
 네이밍 컨벤션:
 - 최상위: `scenarios/`
 - 시나리오 폴더: `<리소스/시나리오>-<핵심키워드>` (kebab-case), 예: `acr-private-regional-replication`
-- 인프라 배포 코드: 시나리오 폴더 하위 `infra/`
+- 인프라 배포 코드: 시나리오 폴더 하위 `infra/`, 레이어별로 `platform/`·`application/` 분리
 
-## Terraform 구성 (접근 방식 A: 단일 디렉토리 평면 구성)
+## Terraform 구성 (접근 방식 A + 레이어 분리)
 
-모듈 분리 없이 `infra/` 안에 평면 구성. 단일 시나리오 1회성 재현 테스트이므로 모듈화는 YAGNI.
+`infra/`를 두 개의 독립 state 레이어로 나눈다. 각 레이어는 평면 구성(모듈 분리 없음)이다.
 
-### 입력 변수 (variables.tf)
+- **platform**: 중앙 구독에서 Private DNS Zone(`privatelink.azurecr.io`)과 spoke VNet Link를 관리.
+- **application**: ACR/VNet/Private Endpoint 워크로드. platform의 zone을 `data` 블록(cross-subscription)으로 조회.
+
+두 레이어는 원격 state로 직접 결합하지 않고 변수/`data` 조회로 느슨하게 연결한다.
+
+### application 레이어 — 입력 변수 (application/variables.tf)
 - `location` (default `koreacentral`)
-- `prefix` / `name_prefix` — 리소스 이름 접두사 (default 예: `acrpriv`)
+- `name_prefix` — 리소스 이름 접두사 (default `acrpriv`)
 - `resource_group_name` (default 파생)
 - `vnet_address_space` (default `10.50.0.0/16`)
 - `pe_subnet_prefix` (default `10.50.1.0/24`)
 - `acr_sku` (default `Premium` — geo-replication은 Premium 필수)
-- `central_private_dns_zone_id` (default `null`) — 중앙 구독의 privatelink.azurecr.io zone 리소스 ID.
-  설정 시에만 Private Endpoint에 zone group 생성, 미설정 시 중앙 Policy가 A 레코드 등록한다고 가정.
+- `use_central_dns_zone_group` (default `false`) — true면 중앙 zone을 `data`로 조회해 zone group 생성
+- `central_dns_subscription_id` / `central_dns_resource_group_name` / `central_private_dns_zone_name`
+  — 중앙 zone `data` 조회용 (cross-subscription)
 - `tags` (map)
 
-### 리소스 (main.tf)
+### application 레이어 — 리소스 (application/main.tf)
 1. `azurerm_resource_group`
 2. `azurerm_virtual_network`
 3. `azurerm_subnet` (private endpoint용; `private_endpoint_network_policies` 적절히 설정)
@@ -63,26 +69,32 @@ README.md                     # repo 전체 안내 + 시나리오 인덱스
    - `public_network_access_enabled = false`
    - `admin_enabled = false`
    - **georeplications 블록 없음**
-5. `azurerm_private_endpoint`
+5. `data "azurerm_private_dns_zone" "central"` (provider=azurerm.central, `use_central_dns_zone_group`일 때만)
+6. `azurerm_private_endpoint`
    - `subresource_names = ["registry"]`
-   - `private_dns_zone_group`는 `central_private_dns_zone_id`가 지정된 경우에만 동적으로 생성
-     (중앙 구독 zone 참조). 기본은 미생성 → 중앙 Policy가 레코드 등록.
+   - `private_dns_zone_group`는 `use_central_dns_zone_group = true`일 때만 동적 생성,
+     중앙 zone을 `data` 조회한 ID 참조. 기본은 미생성 → 중앙 Policy가 레코드 등록.
 
-> Private DNS Zone 및 VNet Link는 이 구성에서 생성하지 않는다 (중앙 구독에서 관리).
+> Private DNS Zone 및 VNet Link는 application에서 생성하지 않는다 (platform/중앙에서 관리).
 
-### 출력 (outputs.tf)
-- `resource_group_name`
-- `acr_id`
-- `acr_login_server`
-- `private_endpoint_ip`
+### platform 레이어 — 리소스 (platform/main.tf)
+1. `azurerm_resource_group` (중앙 DNS RG)
+2. `azurerm_private_dns_zone` — `privatelink.azurecr.io`
+3. `azurerm_private_dns_zone_virtual_network_link` (for_each `linked_vnet_ids`) — spoke VNet 연결
+- provider는 `subscription_id` 변수로 중앙 구독 지정 가능
 
-### Provider (providers.tf)
-- `azurerm` provider, `features {}`
-- `required_version` / `required_providers` 핀
+### 출력
+- application: `resource_group_name`, `acr_id`, `acr_name`, `acr_login_server`, `private_endpoint_ip`, `vnet_id`
+- platform: `resource_group_name`, `private_dns_zone_id`, `private_dns_zone_name`
+
+### Provider
+- application: `azurerm`(default) + `azurerm.central`(alias, data 조회용), `random`
+- platform: `azurerm` (subscription_id 변수)
+- 공통: `required_version` / `required_providers` 핀
 
 ## 에러 재현 절차 (README에 문서화)
 
-1. `cd scenarios/acr-private-regional-replication/infra`
+1. `cd scenarios/acr-private-regional-replication/infra/application`
 2. `cp terraform.tfvars.example terraform.tfvars` 후 값 조정
 3. `terraform init && terraform apply`
 4. 배포 완료 = replica 직전 상태

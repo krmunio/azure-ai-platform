@@ -1,0 +1,10 @@
+location              = "koreacentral"
+resource_group_name   = "central-dns-rg"
+private_dns_zone_name = "privatelink.azurecr.io"
+
+# subscription_id = "<central-connectivity-subscription-id>"
+
+# spoke(application) VNet을 중앙 zone에 연결하려면 application 배포 후 VNet ID를 넣는다.
+# linked_vnet_ids = {
+#   "acr-spoke" = "/subscriptions/<sub>/resourceGroups/acrpriv-rg/providers/Microsoft.Network/virtualNetworks/acrpriv-vnet"
+# }

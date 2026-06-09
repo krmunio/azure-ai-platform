@@ -44,13 +44,18 @@ resource "azurerm_container_registry" "this" {
   # replica는 배포 후 별도 단계(README 참고)에서 추가하며 에러를 재현한다.
 }
 
-# NOTE: Private DNS Zone(privatelink.azurecr.io)은 이 구독에서 생성하지 않는다.
-# 별도(중앙/connectivity) 구독에서 중앙 관리되며, A 레코드 등록은 기본적으로
-# Azure Policy(DeployIfNotExists)로 자동 처리된다.
+# Private DNS Zone(privatelink.azurecr.io)은 이 구독에서 생성하지 않는다.
+# 별도(중앙/connectivity) 구독에서 중앙 관리(platform 폴더)되며, 여기서는 data 블록으로 조회만 한다.
 #
-# - var.central_private_dns_zone_id 가 null  : zone group 미생성 (Policy 기반 등록).
-# - var.central_private_dns_zone_id 가 설정됨 : 해당 중앙 zone을 참조해 zone group 생성
-#                                               (cross-subscription 쓰기 권한 필요).
+# - use_central_dns_zone_group = false (기본): zone group 미생성 (중앙 Azure Policy가 A 레코드 등록).
+# - use_central_dns_zone_group = true       : 중앙 zone을 data로 조회해 zone group 생성
+#                                             (cross-subscription 쓰기 권한 필요).
+data "azurerm_private_dns_zone" "central" {
+  count               = var.use_central_dns_zone_group ? 1 : 0
+  provider            = azurerm.central
+  name                = var.central_private_dns_zone_name
+  resource_group_name = var.central_dns_resource_group_name
+}
 
 resource "azurerm_private_endpoint" "acr" {
   name                = "${var.name_prefix}-acr-pe"
@@ -67,7 +72,7 @@ resource "azurerm_private_endpoint" "acr" {
   }
 
   dynamic "private_dns_zone_group" {
-    for_each = var.central_private_dns_zone_id == null ? [] : [var.central_private_dns_zone_id]
+    for_each = var.use_central_dns_zone_group ? [data.azurerm_private_dns_zone.central[0].id] : []
     content {
       name                 = "acr-dns-zone-group"
       private_dns_zone_ids = [private_dns_zone_group.value]
