@@ -44,20 +44,13 @@ resource "azurerm_container_registry" "this" {
   # replica는 배포 후 별도 단계(README 참고)에서 추가하며 에러를 재현한다.
 }
 
-resource "azurerm_private_dns_zone" "acr" {
-  name                = "privatelink.azurecr.io"
-  resource_group_name = azurerm_resource_group.this.name
-  tags                = var.tags
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "acr" {
-  name                  = "${var.name_prefix}-acr-dns-link"
-  resource_group_name   = azurerm_resource_group.this.name
-  private_dns_zone_name = azurerm_private_dns_zone.acr.name
-  virtual_network_id    = azurerm_virtual_network.this.id
-  registration_enabled  = false
-  tags                  = var.tags
-}
+# NOTE: Private DNS Zone(privatelink.azurecr.io)은 이 구독에서 생성하지 않는다.
+# 별도(중앙/connectivity) 구독에서 중앙 관리되며, A 레코드 등록은 기본적으로
+# Azure Policy(DeployIfNotExists)로 자동 처리된다.
+#
+# - var.central_private_dns_zone_id 가 null  : zone group 미생성 (Policy 기반 등록).
+# - var.central_private_dns_zone_id 가 설정됨 : 해당 중앙 zone을 참조해 zone group 생성
+#                                               (cross-subscription 쓰기 권한 필요).
 
 resource "azurerm_private_endpoint" "acr" {
   name                = "${var.name_prefix}-acr-pe"
@@ -73,8 +66,11 @@ resource "azurerm_private_endpoint" "acr" {
     is_manual_connection           = false
   }
 
-  private_dns_zone_group {
-    name                 = "acr-dns-zone-group"
-    private_dns_zone_ids = [azurerm_private_dns_zone.acr.id]
+  dynamic "private_dns_zone_group" {
+    for_each = var.central_private_dns_zone_id == null ? [] : [var.central_private_dns_zone_id]
+    content {
+      name                 = "acr-dns-zone-group"
+      private_dns_zone_ids = [private_dns_zone_group.value]
+    }
   }
 }

@@ -10,8 +10,10 @@
 
 ## 범위
 
-- 포함: RG, VNet/Subnet, ACR(Premium, public access off), Private DNS Zone, Private Endpoint
+- 포함: RG, VNet/Subnet, ACR(Premium, public access off), Private Endpoint
 - 제외: `georeplications` 블록 (← 에러 재현 단계에서 별도 추가)
+- 제외: Private DNS Zone(`privatelink.azurecr.io`) — **별도(중앙) 구독에서 중앙 관리**.
+  A 레코드 등록은 기본적으로 중앙 Azure Policy(DeployIfNotExists)가 처리한다고 가정.
 
 ## 리포지토리 구조
 
@@ -48,6 +50,8 @@ README.md                     # repo 전체 안내 + 시나리오 인덱스
 - `vnet_address_space` (default `10.50.0.0/16`)
 - `pe_subnet_prefix` (default `10.50.1.0/24`)
 - `acr_sku` (default `Premium` — geo-replication은 Premium 필수)
+- `central_private_dns_zone_id` (default `null`) — 중앙 구독의 privatelink.azurecr.io zone 리소스 ID.
+  설정 시에만 Private Endpoint에 zone group 생성, 미설정 시 중앙 Policy가 A 레코드 등록한다고 가정.
 - `tags` (map)
 
 ### 리소스 (main.tf)
@@ -59,11 +63,12 @@ README.md                     # repo 전체 안내 + 시나리오 인덱스
    - `public_network_access_enabled = false`
    - `admin_enabled = false`
    - **georeplications 블록 없음**
-5. `azurerm_private_dns_zone` — `privatelink.azurecr.io`
-6. `azurerm_private_dns_zone_virtual_network_link`
-7. `azurerm_private_endpoint`
+5. `azurerm_private_endpoint`
    - `subresource_names = ["registry"]`
-   - `private_dns_zone_group` 연결
+   - `private_dns_zone_group`는 `central_private_dns_zone_id`가 지정된 경우에만 동적으로 생성
+     (중앙 구독 zone 참조). 기본은 미생성 → 중앙 Policy가 레코드 등록.
+
+> Private DNS Zone 및 VNet Link는 이 구성에서 생성하지 않는다 (중앙 구독에서 관리).
 
 ### 출력 (outputs.tf)
 - `resource_group_name`

@@ -34,6 +34,17 @@ variable "acr_sku" {
   description = "ACR SKU. geo-replication 및 Private Endpoint는 Premium 필수"
 }
 
+variable "central_private_dns_zone_id" {
+  type        = string
+  default     = null
+  description = <<-EOT
+    중앙(별도 구독)에서 관리되는 privatelink.azurecr.io Private DNS Zone의 리소스 ID.
+    - null(기본): zone group을 만들지 않음. A 레코드는 중앙 Azure Policy(DeployIfNotExists)로 등록된다고 가정.
+    - 값 지정 시: 해당 중앙 zone을 참조해 Private Endpoint에 zone group을 생성(cross-subscription 쓰기 권한 필요).
+    예: /subscriptions/<central-sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/privateDnsZones/privatelink.azurecr.io
+  EOT
+}
+
 variable "tags" {
   type = map(string)
   default = {
