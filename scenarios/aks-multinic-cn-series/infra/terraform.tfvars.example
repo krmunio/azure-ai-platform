@@ -1,0 +1,7 @@
+# 복사: cp terraform.tfvars.example terraform.tfvars
+subscription_id       = "00000000-0000-0000-0000-000000000000"
+location              = "australiaeast"
+prefix                = "aksmnic"
+node_count            = 2
+node_vm_size          = "Standard_D4s_v5"
+enable_managed_multus = false # true면 az CLI로 관리형 Multus 활성화 시도
