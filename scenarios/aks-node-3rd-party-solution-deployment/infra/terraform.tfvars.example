@@ -1,0 +1,16 @@
+subscription_id = "<your-subscription-id>"
+location        = "koreacentral"
+name_prefix     = "aks-node-3p"
+
+# kubernetes_version = "1.30"
+
+system_node_count   = 1
+system_node_vm_size = "Standard_D2s_v5"
+
+user_node_count   = 2
+user_node_vm_size = "Standard_D2s_v5"
+user_node_os_sku  = "Ubuntu"
+
+tags = {
+  scenario = "aks-node-3rd-party-solution-deployment"
+}
