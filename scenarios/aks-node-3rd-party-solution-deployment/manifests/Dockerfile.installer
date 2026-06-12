@@ -1,0 +1,24 @@
+# 케이스 B: Installer-DaemonSet용 이미지
+# 호스트에 설치할 패키지(.deb/.tar)를 /staging에 번들한다.
+# install.sh는 ConfigMap으로 주입되므로 여기엔 포함하지 않는다(스크립트만 빠르게 교체 가능).
+#
+# 빌드/푸시 예시:
+#   ACR=<acr>.azurecr.io
+#   az acr login -n <acr>
+#   docker build -f Dockerfile.installer \
+#     --build-arg PKG_SRC=./mysolution.deb \
+#     -t $ACR/solution-installer:latest .
+#   docker push $ACR/solution-installer:latest
+FROM ubuntu:22.04
+
+# chroot/dpkg/nsenter 등 설치 스크립트가 사용하는 기본 유틸
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends bash util-linux \
+ && rm -rf /var/lib/apt/lists/*
+
+# 호스트에 설치할 패키지를 이미지에 번들 (빌드 컨텍스트의 경로를 PKG_SRC로 지정)
+ARG PKG_SRC=mysolution.deb
+COPY ${PKG_SRC} /staging/
+
+# 실제 동작 진입점은 ConfigMap의 /scripts/install.sh (DaemonSet command에서 지정)
+CMD ["/bin/bash", "-c", "echo 'run via /scripts/install.sh'; sleep infinity"]
