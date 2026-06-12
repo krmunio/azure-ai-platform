@@ -5,8 +5,8 @@
 > (`BadRequest: Failed to replicate private endpoint`)
 
 본 문서는 위 증상에 대해 실제로 수행한 진단 절차와, 동일·유사 사례 재발 시
-순서대로 점검할 체크리스트를 정리합니다. 명령의 `devacrrb2krc`, `dev-rg-rb2-krc`,
-`dev-pvl-rb2-krc-acr` 등은 대상 환경 값으로 치환하여 사용합니다.
+순서대로 점검할 체크리스트를 정리합니다. 명령의 `{acr명}`, `{rg명}`,
+`{pe명}` 등은 대상 환경 값으로 치환하여 사용합니다.
 
 ---
 
@@ -19,7 +19,7 @@
 - [x] **존 중복성(zoneRedundancy) 단독 원인 배제** — `--zone-redundancy Disabled`로도 실패(에러만 더 구체화됨).
 - [x] **중앙 DNS Zone의 리소스 Lock 단독 원인 배제** — DNS Zone 영역 Lock을 **해제한 뒤에도 동일하게 실패**.
       → 차단요인(Lock)이 아니라 PE 자동 확장 경로 자체가 깨진 케이스(6-B/6-C로 진행).
-- [x] **최종 원인 확정**: 기존 PE(`dev-pvl-rb2-krc-acr`)에 신규 `*.uksouth.data.azurecr.io`
+- [x] **최종 원인 확정**: 기존 PE(`{pe명}`)에 신규 `*.uksouth.data.azurecr.io`
       엔드포인트(ipconfig + 사설 IP + A레코드)를 자동 추가하는 "PE replicate" 단계 실패.
 
 ---
@@ -76,7 +76,7 @@
 
 - [ ] 암호화/아이덴티티/존중복/네트워크/SKU 일괄 확인
   ```bash
-  az acr show -n devacrrb2krc \
+  az acr show -n {acr명} \
     --query "{encryption:encryption, identity:identity, zoneRedundancy:zoneRedundancy, dataEndpointEnabled:dataEndpointEnabled, publicNetworkAccess:publicNetworkAccess, networkRuleBypass:networkRuleBypassOptions, sku:sku.name}" -o jsonc
   ```
   - [ ] `encryption.status` = `disabled` → CMK 원인 배제 (enabled면 Key Vault 방화벽/권한 추가 점검).
@@ -118,17 +118,17 @@
 
 - [ ] 존 중복 끄고 생성(단일 변수 분리)
   ```bash
-  az acr replication create -r devacrrb2krc -l uksouth --zone-redundancy Disabled -o jsonc
+  az acr replication create -r {acr명} -l uksouth --zone-redundancy Disabled -o jsonc
   ```
   - 성공 → 존 중복 프로비저닝(capacity)이 원인.
   - 실패하되 **에러가 구체화**되면(예: `Failed to replicate private endpoint`) → 5단계로.
 - [ ] (옵션) 다른 리전으로 생성하여 리전 고유 문제인지 분리
   ```bash
-  az acr replication create -r devacrrb2krc -l japaneast -o jsonc
+  az acr replication create -r {acr명} -l japaneast -o jsonc
   ```
 - [ ] 상세 로그 캡처
   ```bash
-  az acr replication create -r devacrrb2krc -l uksouth --zone-redundancy Disabled --debug 2>&1 | tail -50
+  az acr replication create -r {acr명} -l uksouth --zone-redundancy Disabled --debug 2>&1 | tail -50
   ```
 
 ---
@@ -145,20 +145,20 @@
 
 - [ ] PE 연결 상태 점검 (Approved/Succeeded 여부)
   ```bash
-  az acr private-endpoint-connection list -r devacrrb2krc \
+  az acr private-endpoint-connection list -r {acr명} \
     --query "[].{name:name, status:privateLinkServiceConnectionState.status, provState:provisioningState, desc:privateLinkServiceConnectionState.description}" -o table
   ```
   - 비정상(Pending/Rejected/Disconnected/Failed) 발견 시 → 해당 연결 정리/재승인 후 재시도.
 - [ ] PE의 현재 FQDN ↔ IP 매핑 확인 (data endpoint 개수)
   ```bash
-  PEID=$(az acr private-endpoint-connection list -r devacrrb2krc --query "[0].privateEndpoint.id" -o tsv)
+  PEID=$(az acr private-endpoint-connection list -r {acr명} --query "[0].privateEndpoint.id" -o tsv)
   az network private-endpoint show --ids "$PEID" \
     --query "customDnsConfigs[].{fqdn:fqdn, ips:ipAddresses}" -o jsonc
   ```
   - 기대: `azurecr.io` + `<home>.data.azurecr.io` 만 존재(신규 `*.uksouth.data` 누락 = 추가 실패 흔적).
 - [x] **리소스 잠금(Lock)** 으로 NIC/PE 수정 차단 여부
   ```bash
-  az lock list -g dev-rg-rb2-krc -o table
+  az lock list -g {rg명} -o table
   # 중앙 DNS Zone이 위치한 RG/구독에 대해서도 동일 확인
   ```
   - **결과(본 사례)**: 중앙 DNS Zone 영역의 Lock을 **해제 후 재시도했으나 동일 실패** → Lock은 원인 아님(배제).
@@ -166,7 +166,7 @@
     DNS Zone Group 권한(이 섹션 마지막 항목)을 먼저 확인하고 6-B(PE 재생성)/6-C(지원 티켓)로 진행한다.
 - [ ] **서브넷 PE 네트워크 정책** 으로 ipconfig 추가 차단 여부
   ```bash
-  SUBNET_ID="/subscriptions/<sub>/resourceGroups/dev-rg-rb2-krc/providers/Microsoft.Network/virtualNetworks/dev-vnet-rb2-krc/subnets/dev-subnet-rb2-krc-pvl"
+  SUBNET_ID="/subscriptions/<sub>/resourceGroups/{rg명}/providers/Microsoft.Network/virtualNetworks/{vnet명}/subnets/{subnet명}"
   az network vnet subnet show --ids "$SUBNET_ID" \
     --query "{pe:privateEndpointNetworkPolicies, pls:privateLinkServiceNetworkPolicies}" -o jsonc
   ```
@@ -190,11 +190,11 @@
 > **PE 삭제 구간 동안 private pull 일시 중단 → 반드시 유지보수 창에서 진행.**
 - [ ] 1) 기존 PE 삭제
   ```bash
-  az network private-endpoint delete -n dev-pvl-rb2-krc-acr -g dev-rg-rb2-krc
+  az network private-endpoint delete -n {pe명} -g {rg명}
   ```
 - [ ] 2) replica 추가(복제할 PE가 없으므로 성공)
   ```bash
-  az acr replication create -r devacrrb2krc -l uksouth --zone-redundancy Disabled
+  az acr replication create -r {acr명} -l uksouth --zone-redundancy Disabled
   ```
 - [ ] 3) PE 재생성(동일 서브넷/중앙 Zone Group) → registry + 모든 리전 data endpoint를 한 번에 노출,
       DNS Zone Group이 전체 A레코드 자동 등록.
@@ -212,7 +212,7 @@
 
 - [ ] replica 상태 Ready/Succeeded
   ```bash
-  az acr replication list -r devacrrb2krc \
+  az acr replication list -r {acr명} \
     --query "[].{replica:name, location:location, zoneRedundancy:zoneRedundancy, status:provisioningState}" -o table
   ```
 - [ ] PE에 신규 data endpoint A레코드 등록 확인(`*.uksouth.data → 사설 IP`).
