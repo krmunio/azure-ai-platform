@@ -300,6 +300,13 @@ az lock create --subscription <central-dns-subscription-id> -g central-dns-rg \
 - [x] **PE를 Dynamic IP로 구성 → geo-replication 생성 성공** (테스트 환경 재현).
 - [x] 이 제약은 **공식 문서에 아직 반영되지 않은 동작**이다(2026-06 기준).
 
+PE를 Static IP로 구성한 상태(아래 좌)에서 신규 리전 replica를 추가하면 PE 자동 확장이
+실패하며 replica가 `Failed`가 된다(아래 우).
+
+| PE를 Static IP로 구성 | 그 상태에서 replication 추가 실패 |
+|---|---|
+| ![Static IP로 구성된 PE](../images/staticIP_forPE.png) | ![Static IP로 인한 replication 실패](../images/failed_with_staticIP_forPE.png) |
+
 ### 원리 (왜 Static이면 깨지는가)
 geo-replication을 생성하면 ACR은 내부적으로 기존 PE의 NIC에 **ipconfig 1개를 추가**하고,
 replication 리전의 **data endpoint(`*.<region>.data.azurecr.io`)에 사설 IP를 할당**한다(0-1 (C), 5단계 참조).
@@ -322,16 +329,17 @@ replication 리전의 **data endpoint(`*.<region>.data.azurecr.io`)에 사설 IP
 ### 6-D. 해결책 — PE를 Dynamic IP로 재구성
 > PE의 ipconfig 재구성/삭제 구간 동안 private pull이 일시 중단되므로 **반드시 유지보수 창에서 진행**한다.
 
-상세 전환 절차는 별도 가이드로 분리했다. 두 가지 전환 방식(in-place ipconfig 재구성 / PE 삭제·재생성)
-비교, 사전 점검, 단계별 명령, 사후 검증, 롤백을 포함한다.
+상세 전환 절차는 별도 가이드로 분리했다. 검증된 단일 업데이트 방식
+(`az network private-endpoint update --set ipConfigurations=...`)으로
+Dynamic⇄Static 전환, 전/후 검증, 제약·사전 체크를 포함한다.
 
-📎 **첨부: [PE Static IP → Dynamic IP 전환 가이드](./GUIDE-PE-STATIC-TO-DYNAMIC.md)**
+📎 **첨부: [PE Dynamic ⇄ Static IP 전환 가이드](./GUIDE-PE-IP-ALLOCATION-SWITCH.md)**
 
 요약:
 - [ ] 0) **선행 확인**: PE에 Static IP가 *반드시* 필요한 요구사항(방화벽 규칙 고정 등)이 있는지 점검.
       필수 요구가 없으면 Dynamic 재구성이 권장 경로다.
-- [ ] 1) 전환 수행 — 권장: **in-place ipconfig 재구성**(연결 승인·DNS Zone Group 보존),
-      대안: **PE 삭제·재생성**. (→ 첨부 가이드 2~4장)
+- [ ] 1) 전환 수행 — `az network private-endpoint update --set ipConfigurations='[]'`로
+      모든 멤버를 한 번에 Dynamic으로 되돌린다. (→ 첨부 가이드 3장)
 - [ ] 2) replica 생성 재시도
   ```bash
   az acr replication create -r {acr명} -l uksouth -o jsonc
