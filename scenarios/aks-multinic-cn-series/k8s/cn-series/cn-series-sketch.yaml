@@ -1,0 +1,16 @@
+# ============================================================
+# CN-Series 설계 스케치 — apply 대상 아님.
+# 실배포에는 Palo Alto 라이선스/이미지/Panorama 연동 필요.
+# 공식: https://github.com/PaloAltoNetworks/cn-series-helm
+#       https://docs.paloaltonetworks.com/pan-os/10-1/pan-os-new-features/virtualization-features/deploy-the-cn-series-as-a-kubernetes-service
+# ------------------------------------------------------------
+# 요지:
+#  - CN-NGFW(데이터플레인) DaemonSet/Deployment가 Multus 2nd NIC(net1)로
+#    검사 트래픽을 받도록 k8s.v1.cni.cncf.io/networks 어노테이션 지정.
+#  - PAN-CN-MGMT(관리플레인)가 Panorama에 등록, 라이선스/정책 수신.
+#  - Helm values 예: multus.enable=true, 데이터플레인 인터페이스=net1.
+# ------------------------------------------------------------
+# 예시(개념) — 실제 차트 값으로 대체 필요:
+#   annotations:
+#     k8s.v1.cni.cncf.io/networks: azure-routable-secondary
+# ============================================================
