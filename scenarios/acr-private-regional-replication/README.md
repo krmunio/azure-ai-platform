@@ -122,7 +122,8 @@ az acr replication create \
 | replica 생성이 `Failed`로 끝남 | Activity Log에서 `write`가 `Accepted -> Creating -> Failed`인지 확인 (정책/RBAC 즉시 차단 여부 분리) | [체크리스트 0~2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
 | 정책/권한 이슈인지 불명확 | `disallowed by policy`, `403/Forbidden`, Deny Assignment 흔적 확인 | [체크리스트 2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
 | PE/DNS 경로 이슈 의심 | 기존 PE에 신규 data endpoint(ipconfig/A레코드) 자동 확장 실패 여부 확인 | [체크리스트 5~6단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
-| PE DNS configuration에 zone 연결이 안 보임 | VNet Link와 Zone Group 구분 확인 (`VNet Link != Zone Group`) | [README 하단 DNS 트러블슈팅](#트러블슈팅-pe의-dns-configuration에-연결-구성이-안-보임) |
+| PE가 Static IP인지 의심됨 | PE NIC `privateIPAllocationMethod`가 `Static`인지 먼저 확인 | [체크리스트 8단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE DNS configuration에 zone 연결이 안 보임 | VNet Link와 Zone Group 구분 확인 (`VNet Link != Zone Group`) | [체크리스트 5단계](./docs/TROUBLESHOOTING-CHECKLIST.md#5-private-endpoint-복제-실패-정밀-진단-최종-원인-영역) |
 
 ### 핵심 원인 요약 (최근 사례 기준)
 
@@ -162,30 +163,3 @@ terraform destroy
 cd ../platform
 terraform destroy
 ```
-
-## 트러블슈팅: PE의 DNS configuration에 연결 구성이 안 보임
-
-증상: Private DNS Zone에 VNet Link는 했는데, Private Endpoint의 **DNS configuration**에
-연결된 zone group 구성 정보가 표시되지 않고 이름 해석이 안 됨.
-
-원인: **VNet Link ≠ Zone Group**. 둘은 역할이 다르다.
-
-| 구성 | 역할 | 이 항목만으로 A 레코드가 생기나? |
-| --- | --- | --- |
-| VNet Link (`...virtual_network_link`) | zone을 VNet에 연결해 **조회 가능**하게 함 | ❌ 아니오 |
-| Zone Group (`private_dns_zone_group`) | PE 사설 IP를 zone에 **A 레코드로 등록**, PE의 DNS configuration에 표시 | ✅ 예 |
-
-즉 VNet Link만 있으면 "조회할 zone은 연결됐으나 그 안에 ACR 레코드가 없는" 상태다.
-A 레코드는 (1) PE의 zone group, 또는 (2) 중앙 Azure Policy(DeployIfNotExists)가 만들어야 한다.
-
-해결: `infra/application/terraform.tfvars`에서 zone group을 생성하도록 설정 후 `terraform apply`.
-
-```hcl
-use_central_dns_zone_group      = true
-central_dns_subscription_id     = "<중앙 DNS 구독 ID>"
-central_dns_resource_group_name = "<중앙 DNS zone이 있는 RG>"
-central_private_dns_zone_name   = "privatelink.azurecr.io"
-```
-
-> 중앙 zone에 대한 **Private DNS Zone Contributor** 권한이 필요하다.
-> 중앙에 자동 등록 Policy가 운영 중이라면 이 설정 없이도 Policy가 zone group을 붙여준다.
