@@ -110,6 +110,47 @@ az acr replication create \
 
 발생하는 에러 메시지와 상황을 기록한다.
 
+## 빠른 트러블슈팅 가이드
+
+아래는 이 시나리오에서 자주 만나는 증상에 대한 **빠른 분기점**이다.
+상세 진단 순서와 근거는 체크리스트 문서를 참조한다.
+
+- 상세 체크리스트: [`docs/TROUBLESHOOTING-CHECKLIST.md`](./docs/TROUBLESHOOTING-CHECKLIST.md)
+
+| 증상 | 1차 확인 포인트 | 바로 보기 |
+| --- | --- | --- |
+| replica 생성이 `Failed`로 끝남 | Activity Log에서 `write`가 `Accepted -> Creating -> Failed`인지 확인 (정책/RBAC 즉시 차단 여부 분리) | [체크리스트 0~2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| 정책/권한 이슈인지 불명확 | `disallowed by policy`, `403/Forbidden`, Deny Assignment 흔적 확인 | [체크리스트 2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE/DNS 경로 이슈 의심 | 기존 PE에 신규 data endpoint(ipconfig/A레코드) 자동 확장 실패 여부 확인 | [체크리스트 5~6단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE DNS configuration에 zone 연결이 안 보임 | VNet Link와 Zone Group 구분 확인 (`VNet Link != Zone Group`) | [README 하단 DNS 트러블슈팅](#트러블슈팅-pe의-dns-configuration에-연결-구성이-안-보임) |
+
+### 핵심 원인 요약 (최근 사례 기준)
+
+1. 정책 Deny/RBAC/Lock 같은 **어드미션 차단성 원인**과, 백엔드 프로비저닝 실패를 먼저 분리해야 한다.
+2. `Accepted -> Creating -> Failed` 흐름이면 보통 정책/RBAC 즉시 차단이 아니라 **백엔드 단계 실패**다.
+3. 최종적으로는 기존 PE에 신규 data endpoint를 자동 추가하는 "PE replicate" 경로 실패가 원인일 수 있다.
+
+### 최소 진단 커맨드
+
+아래 커맨드는 "어디에서 실패하는지"를 빠르게 좁히기 위한 최소 세트다.
+
+```bash
+# 1) Replica 생성/변경 관련 Activity Log 확인
+az monitor activity-log list \
+  --resource-group {rg명} \
+  --offset 2h \
+  --max-events 100
+
+# 2) ACR replication 상태 확인
+az acr replication list \
+  --registry {acr명}
+
+# 3) Private Endpoint ip configuration 확인 (data endpoint 확장 여부 점검)
+az network private-endpoint show \
+  --name {pe명} \
+  --resource-group {rg명}
+```
+
 ## 정리(삭제)
 
 application → platform 역순으로 삭제한다.
