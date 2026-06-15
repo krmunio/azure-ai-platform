@@ -110,6 +110,48 @@ az acr replication create \
 
 발생하는 에러 메시지와 상황을 기록한다.
 
+## 빠른 트러블슈팅 가이드
+
+아래는 이 시나리오에서 자주 만나는 증상에 대한 **빠른 분기점**이다.
+상세 진단 순서와 근거는 체크리스트 문서를 참조한다.
+
+- 상세 체크리스트: [`docs/TROUBLESHOOTING-CHECKLIST.md`](./docs/TROUBLESHOOTING-CHECKLIST.md)
+
+| 증상 | 1차 확인 포인트 | 바로 보기 |
+| --- | --- | --- |
+| replica 생성이 `Failed`로 끝남 | Activity Log에서 `write`가 `Accepted -> Creating -> Failed`인지 확인 (정책/RBAC 즉시 차단 여부 분리) | [체크리스트 0~2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| 정책/권한 이슈인지 불명확 | `disallowed by policy`, `403/Forbidden`, Deny Assignment 흔적 확인 | [체크리스트 2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE/DNS 경로 이슈 의심 | 기존 PE에 신규 data endpoint(ipconfig/A레코드) 자동 확장 실패 여부 확인 | [체크리스트 5~6단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE가 Static IP인지 의심됨 | PE NIC `privateIPAllocationMethod`가 `Static`인지 먼저 확인 | [체크리스트 7단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE DNS configuration에 zone 연결이 안 보임 | VNet Link와 Zone Group 구분 확인 (`VNet Link != Zone Group`) | [체크리스트 5단계](./docs/TROUBLESHOOTING-CHECKLIST.md#5-private-endpoint-복제-실패-정밀-진단-최종-원인-영역) |
+
+### 핵심 원인 요약 (최근 사례 기준)
+
+1. 정책 Deny/RBAC/Lock 같은 **어드미션 차단성 원인**과, 백엔드 프로비저닝 실패를 먼저 분리해야 한다.
+2. `Accepted -> Creating -> Failed` 흐름이면 보통 정책/RBAC 즉시 차단이 아니라 **백엔드 단계 실패**다.
+3. 최종적으로는 기존 PE에 신규 data endpoint를 자동 추가하는 "PE replicate" 경로 실패가 원인일 수 있다.
+
+### 최소 진단 커맨드
+
+아래 커맨드는 "어디에서 실패하는지"를 빠르게 좁히기 위한 최소 세트다.
+
+```bash
+# 1) Replica 생성/변경 관련 Activity Log 확인
+az monitor activity-log list \
+  --resource-group {rg명} \
+  --offset 2h \
+  --max-events 100
+
+# 2) ACR replication 상태 확인
+az acr replication list \
+  --registry {acr명}
+
+# 3) Private Endpoint ip configuration 확인 (data endpoint 확장 여부 점검)
+az network private-endpoint show \
+  --name {pe명} \
+  --resource-group {rg명}
+```
+
 ## 정리(삭제)
 
 application → platform 역순으로 삭제한다.
@@ -121,30 +163,3 @@ terraform destroy
 cd ../platform
 terraform destroy
 ```
-
-## 트러블슈팅: PE의 DNS configuration에 연결 구성이 안 보임
-
-증상: Private DNS Zone에 VNet Link는 했는데, Private Endpoint의 **DNS configuration**에
-연결된 zone group 구성 정보가 표시되지 않고 이름 해석이 안 됨.
-
-원인: **VNet Link ≠ Zone Group**. 둘은 역할이 다르다.
-
-| 구성 | 역할 | 이 항목만으로 A 레코드가 생기나? |
-| --- | --- | --- |
-| VNet Link (`...virtual_network_link`) | zone을 VNet에 연결해 **조회 가능**하게 함 | ❌ 아니오 |
-| Zone Group (`private_dns_zone_group`) | PE 사설 IP를 zone에 **A 레코드로 등록**, PE의 DNS configuration에 표시 | ✅ 예 |
-
-즉 VNet Link만 있으면 "조회할 zone은 연결됐으나 그 안에 ACR 레코드가 없는" 상태다.
-A 레코드는 (1) PE의 zone group, 또는 (2) 중앙 Azure Policy(DeployIfNotExists)가 만들어야 한다.
-
-해결: `infra/application/terraform.tfvars`에서 zone group을 생성하도록 설정 후 `terraform apply`.
-
-```hcl
-use_central_dns_zone_group      = true
-central_dns_subscription_id     = "<중앙 DNS 구독 ID>"
-central_dns_resource_group_name = "<중앙 DNS zone이 있는 RG>"
-central_private_dns_zone_name   = "privatelink.azurecr.io"
-```
-
-> 중앙 zone에 대한 **Private DNS Zone Contributor** 권한이 필요하다.
-> 중앙에 자동 등록 Policy가 운영 중이라면 이 설정 없이도 Policy가 zone group을 붙여준다.
