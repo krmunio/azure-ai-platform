@@ -122,7 +122,7 @@ az acr replication create \
 | replica 생성이 `Failed`로 끝남 | Activity Log에서 `write`가 `Accepted -> Creating -> Failed`인지 확인 (정책/RBAC 즉시 차단 여부 분리) | [체크리스트 0~2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
 | 정책/권한 이슈인지 불명확 | `disallowed by policy`, `403/Forbidden`, Deny Assignment 흔적 확인 | [체크리스트 2단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
 | PE/DNS 경로 이슈 의심 | 기존 PE에 신규 data endpoint(ipconfig/A레코드) 자동 확장 실패 여부 확인 | [체크리스트 5~6단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
-| PE가 Static IP인지 의심됨 | PE NIC `privateIPAllocationMethod`가 `Static`인지 먼저 확인 | [체크리스트 8단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
+| PE가 Static IP인지 의심됨 | PE NIC `privateIPAllocationMethod`가 `Static`인지 먼저 확인 | [체크리스트 7단계](./docs/TROUBLESHOOTING-CHECKLIST.md) |
 | PE DNS configuration에 zone 연결이 안 보임 | VNet Link와 Zone Group 구분 확인 (`VNet Link != Zone Group`) | [체크리스트 5단계](./docs/TROUBLESHOOTING-CHECKLIST.md#5-private-endpoint-복제-실패-정밀-진단-최종-원인-영역) |
 
 ### 핵심 원인 요약 (최근 사례 기준)

@@ -18,7 +18,7 @@
 - [x] **PE 서브넷 IP 고갈 배제** (`/26`, 24/59 사용 → 35 여유). replica 추가는 PE에 ipconfig 1개만 더함.
 - [x] **존 중복성(zoneRedundancy) 단독 원인 배제** — `--zone-redundancy Disabled`로도 실패(에러만 더 구체화됨).
 - [x] **중앙 DNS Zone의 리소스 Lock 단독 원인 배제** — DNS Zone 영역 Lock을 **해제한 뒤에도 동일하게 실패**.
-      → 차단요인(Lock)이 아니라 PE 자동 확장 경로 자체가 깨진 케이스(6-B 또는 8단계 경로로 진행).
+      → 차단요인(Lock)이 아니라 PE 자동 확장 경로 자체가 깨진 케이스(6단계 점검 후 7~8장으로 진행).
 - [x] **최종 원인 확정**: 기존 PE(`{pe명}`)에 신규 `*.uksouth.data.azurecr.io`
       엔드포인트(ipconfig + 사설 IP + A레코드)를 자동 추가하는 "PE replicate" 단계 실패.
 
@@ -138,7 +138,7 @@
 > **왜 검증?** ACR은 PE 1개가 모든 리전 data endpoint를 한 NIC에서 커버하므로(0-1 (C) 참조),
 > 신규 리전 추가는 **기존 PE NIC에 `*.<region>.data` ipconfig + 사설 IP + A레코드를 자동 확장**하는 단계다.
 > 이 단계를 막는 요인 — PE 연결 비정상, IP 고갈, 리소스 Lock, 서브넷 PE 네트워크 정책,
-> **타 구독 중앙 DNS Zone Group 자동 갱신 권한 부재**, 그리고 **PE의 Static IP 할당(→ 9장)** — 를 하나씩 점검해 차단 지점을 찾는다.
+> **타 구독 중앙 DNS Zone Group 자동 갱신 권한 부재**, 그리고 **PE의 Static IP 할당(→ 7장)** — 를 하나씩 점검해 차단 지점을 찾는다.
 
 > 에러 `Failed to replicate private endpoint` = 기존 PE에 신규 리전 data endpoint를
 > 끼워넣는 단계 실패. 아래로 PE 상태/구성/차단요인을 점검.
@@ -190,7 +190,7 @@ central_private_dns_zone_name   = "privatelink.azurecr.io"
   ```
   - **결과(본 사례)**: 중앙 DNS Zone 영역의 Lock을 **해제 후 재시도했으나 동일 실패** → Lock은 원인 아님(배제).
     Lock을 풀어도 실패하면 차단요인이 아니라 **PE 자동 확장 경로 자체의 문제**이므로, 아래
-    DNS Zone Group 권한(이 섹션 마지막 항목)을 먼저 확인하고 6-B(PE 재생성) 또는 8단계 확인으로 진행한다.
+    DNS Zone Group 권한(이 섹션 마지막 항목)을 먼저 확인하고 7~8장으로 진행한다.
 - [ ] **서브넷 PE 네트워크 정책** 으로 ipconfig 추가 차단 여부
   ```bash
   SUBNET_ID="/subscriptions/<sub>/resourceGroups/{rg명}/providers/Microsoft.Network/virtualNetworks/{vnet명}/subnets/{subnet명}"
@@ -204,111 +204,9 @@ central_private_dns_zone_name   = "privatelink.azurecr.io"
 
 ---
 
-## 6. 해결 경로 선택 (근본 원인 기반)
+## 6. PE IP 할당 방식 / 중앙 Private DNS Zone 잠금 점검
 
-### 6-0. 경로 선택 전 확인
-- [ ] **차단요인 존재 여부**: 5단계에서 Lock/정책/권한 차단이 확인됐는지 점검.
-- [ ] **PE IP 할당 방식**: 8-1의 명령으로 `Static/Dynamic` 먼저 판별.
-- [ ] **cross-subscription DNS 권한**: 5단계의 Zone Group 자동 갱신 권한 점검 완료 여부 확인.
-
-판정:
-- 차단요인 발견됨 → **6-A**
-- 차단요인 없음 + PE 자동 확장 실패 지속 → **6-B**
-- 운영 중단 없이 진행 필요 → **8단계까지 확인 후 8-4 에스컬레이션**
-- PE IP가 Static으로 확인됨 → **8-3-A** 우선
-
-### 6-A. 차단요인(Lock/정책)이 발견된 경우 — 정상 경로 복구
-- [ ] Lock 제거 또는 서브넷 PE 정책 조정 후 replica 재생성.
-- ⚠️ **본 사례 경과**: 중앙 DNS Zone Lock 해제 후에도 동일 실패.
-  - Lock 해제 후에도 실패하면 6-B(PE 재생성) 또는 8단계 확인 후 8-4(지원 티켓)로 진행.
-  - 진행 전 5단계의 DNS Zone Group 자동 갱신 권한(cross-subscription)을 반드시 확인.
-
-### 6-B. 차단요인이 없는데도 PE 복제 실패 — PE 재생성으로 우회
-> PE 자동 확장 경로가 깨졌으니, replica를 먼저 만든 뒤 PE를 재생성한다.
-> **PE 삭제 구간 동안 private pull 일시 중단 → 반드시 유지보수 창에서 진행.**
-- [ ] 1) 기존 PE 삭제
-  ```bash
-  az network private-endpoint delete -n {pe명} -g {rg명}
-  ```
-- [ ] 2) replica 추가(복제할 PE가 없으므로 성공)
-  ```bash
-  az acr replication create -r {acr명} -l uksouth --zone-redundancy Disabled
-  ```
-- [ ] 3) PE 재생성(동일 서브넷/중앙 Zone Group)
-- [ ] 4) 검증: PE `customDnsConfigs`에 `*.uksouth.data` 포함 확인
-
-## 7. 운영 부록 — `terraform destroy`가 "Still destroying..."에서 멈출 때 (중앙 DNS Zone 잠금)
-
-### 7-0. 확인 방법(빠른 판정)
-- [ ] 아래 세 가지를 먼저 확인해 "중앙 DNS Lock으로 인한 destroy hang"인지 판별
-  ```bash
-  # 1) 어떤 구독에 배포됐는지 확인(기본 CLI 구독과 다를 수 있음)
-  terraform state show azurerm_container_registry.this | grep -E '^\s+id\s+='
-
-  # 2) 그 구독에서 최근 실패한 삭제 작업 확인
-  SUB=<deploy-subscription-id>; RG={rg명}
-  az monitor activity-log list --subscription $SUB -g $RG --offset 40m \
-    --query "[?status.value=='Failed'].{op:operationName.value, msg:properties.statusMessage}" -o json
-
-  # 3) 중앙 DNS RG 잠금 확인
-  az lock list --subscription {central-dns-subscription-id} -g {central-dns-rg} -o table
-  ```
-
-판정:
-- `privateDnsZoneGroups/delete` + `ScopeLocked`가 보이면 본 부록 절차로 진행.
-- 해당 흔적이 없으면 5~6 단계로 복귀해 다른 원인 재진단.
-
-### 증상
-- `infra/application`에서 `terraform destroy`가 `azurerm_private_endpoint.acr` 단계에서 무한 진행("Still destroying...").
-- 프로세스가 죽지 않고 state lock(`.terraform.tfstate.lock.info`)을 계속 점유.
-
-### 근본 원인
-Private Endpoint 삭제 시 terraform은 먼저 `privateDnsZoneGroup`을 지우는데, 이때 **중앙(cross-subscription)
-Private DNS Zone에 자동 등록된 A 레코드**(`<acr>.koreacentral.data`, `<acr>.uksouth.data` 등)를 삭제해야 한다.
-중앙 DNS가 위치한 RG(`central-dns-rg`, 구독 K-PLATFORM-LZ)에 **`CanNotDelete` 잠금**이 걸려 있으면
-A 레코드 삭제가 `ScopeLocked`로 실패하고, provider가 이를 재시도하며 destroy가 hang한다.
-
-진단 증거(Activity Log):
-```
-Microsoft.Network/privateEndpoints/privateDnsZoneGroups/delete : Failed
-  code: ScopeLocked
-  "... privateDnsZones/privatelink.azurecr.io ... is locked. Please remove the lock and try again."
-```
-
-### 해결
-```bash
-# (a) 멈춘 destroy 프로세스 종료 후 stale state lock 제거
-kill <PID>                              # ps -ef | grep '[t]erraform destroy' 로 PID 확인
-rm -f infra/application/.terraform.tfstate.lock.info   # 또는 terraform force-unlock <LOCK_ID>
-
-# (b) 중앙 DNS RG의 CanNotDelete 잠금 제거 (K-PLATFORM-LZ에 locks/delete 권한 필요)
-az lock delete --subscription {central-dns-subscription-id} -g {central-dns-rg} --name <lock-name>
-
-# (c) destroy 재실행
-cd infra/application && terraform destroy
-
-# (d) (선택) 가드레일이면 destroy 완료 후 잠금 재적용
-az lock create --subscription {central-dns-subscription-id} -g {central-dns-rg} \
-  --name <lock-name> --lock-type CanNotDelete
-```
-
-> 주의: `central-dns-rg`는 **중앙/공유 플랫폼 리소스**다. 잠금은 의도적 가드레일일 수 있으므로
-> 제거 전 소유 팀과 합의하고, 작업 후 재적용 여부를 확인한다.
->
-> 잠금을 제거할 수 없는 경우의 대안: 중앙 A 레코드를 Azure Policy(DINE)가 관리한다면 동일하게
-> 잠금에 막히므로, destroy 전에 잠금 해제가 사실상 필수다. 임시로 state에서
-> `azurerm_private_endpoint.acr`의 zone group만 분리해도 Azure가 A 레코드 정리를 시도하므로 동일하게 막힌다.
-
----
-
-## 8. 확인된 Limitation — Private Endpoint가 Static IP면 geo-replication 생성 실패
-
-### 8-0. 최종 결론
-- [x] PE를 **Static IP**로 구성하면 geo-replication 생성이 실패했다(테스트 재현).
-- [x] PE를 **Dynamic IP**로 구성하면 geo-replication 생성이 성공했다(테스트 재현).
-- [x] 5단계 차단요인(정책/RBAC/Lock/권한) 배제 후에도 실패하면, 이 limitation을 우선 확인한다.
-
-### 8-1. 확인 방법 (Static/Dynamic 판정)
+### 6-1. PE IP 할당 방식 점검
 - [ ] PE NIC의 ipconfig별 IP 할당 방식 확인
   ```bash
   az network nic show \
@@ -317,82 +215,80 @@ az lock create --subscription {central-dns-subscription-id} -g {central-dns-rg} 
     --query "ipConfigurations[].{Name:name, PrivateIPAddress:privateIPAddress, Alloc:privateIPAllocationMethod}" \
     -o table
   ```
-  - 판정: `Alloc`이 **`Static`**이면 본 limitation 해당.
-  - 판정: `Alloc`이 **`Dynamic`**이면 본 항목은 배제하고 5단계 다른 차단요인 점검.
+  - [ ] `Alloc`이 `Static`이면 7번(결론)으로 이동한다.
+  - [ ] `Alloc`이 `Dynamic`이면 6-2와 6-3을 계속 확인한다.
 
-PE를 Static IP로 구성한 상태(아래 좌)에서 신규 리전 replica를 추가하면 PE 자동 확장이
-실패하며 replica가 `Failed`가 된다(아래 우).
+### 6-2. 중앙 Private DNS Zone 잠금 점검
+- [ ] 중앙 DNS RG 잠금 확인
+  ```bash
+  az lock list --subscription {central-dns-subscription-id} -g {central-dns-rg} -o table
+  ```
+  - [ ] `CanNotDelete` 잠금이 있으면 제거 후 다시 시도한다.
+  - [ ] 잠금이 없으면 6-3과 7번을 계속 확인한다.
+
+### 6-3. `terraform destroy` hang 점검
+- [ ] 아래 조건으로 잠금 연계 hang인지 확인
+  ```bash
+  terraform state show azurerm_container_registry.this | grep -E '^\s+id\s+='
+  SUB=<deploy-subscription-id>; RG={rg명}
+  az monitor activity-log list --subscription $SUB -g $RG --offset 40m \
+    --query "[?status.value=='Failed'].{op:operationName.value, msg:properties.statusMessage}" -o json
+  ```
+  - [ ] `privateDnsZoneGroups/delete` + `ScopeLocked`면 중앙 DNS 잠금이 직접 원인이다.
+  - [ ] 해당 흔적이 없으면 7번 결론과 8번 검증을 계속 확인한다.
+
+---
+
+## 7. 확인된 Limitation — Private Endpoint가 Static IP면 geo-replication 생성 실패
+
+### 7-1. 최종 결론
+- [x] PE를 **Static IP**로 구성하면 geo-replication 생성이 실패했다(테스트 재현).
+- [x] PE를 **Dynamic IP**로 구성하면 geo-replication 생성이 성공했다(테스트 재현).
+- [x] 5~6단계 점검 후에도 실패하면, 이 limitation을 우선 원인으로 본다.
+
+### 7-2. 확인 방법 (Static/Dynamic 판정)
+- [ ] PE NIC의 ipconfig별 IP 할당 방식 확인
+  ```bash
+  az network nic show \
+    --ids $(az network private-endpoint show -n {pe명} -g {rg명} \
+              --query "networkInterfaces[0].id" -o tsv) \
+    --query "ipConfigurations[].{Name:name, PrivateIPAddress:privateIPAddress, Alloc:privateIPAllocationMethod}" \
+    -o table
+  ```
+  - [ ] `Alloc`이 `Static`이면 본 limitation 해당.
+  - [ ] `Alloc`이 `Dynamic`이면 5~6단계의 다른 차단요인을 다시 본다.
+
+PE를 Static IP로 구성한 상태에서 신규 리전 replica를 추가하면 PE 자동 확장이 실패하며 replica가 `Failed`가 된다.
 
 | PE를 Static IP로 구성 | 그 상태에서 replication 추가 실패 |
 |---|---|
 | ![Static IP로 구성된 PE](../images/staticIP_forPE.png) | ![Static IP로 인한 replication 실패](../images/failed_with_staticIP_forPE.png) |
 
-### 8-2. 원리 (왜 Static이면 깨지는가)
-geo-replication을 생성하면 ACR은 내부적으로 기존 PE의 NIC에 **ipconfig 1개를 추가**하고,
-replication 리전의 **data endpoint(`*.<region>.data.azurecr.io`)에 사설 IP를 할당**한다(0-1 (C), 5단계 참조).
-- **Dynamic IP**: 서브넷에서 가용 IP를 **자동 할당**받아 ipconfig가 정상 확장됨 → 성공.
-- **Static IP**: ipconfig마다 **특정 IP를 명시적으로 지정**해야만 구성되므로, 자동 확장 단계에서
-  신규 data endpoint용 IP를 잡지 못해 PE 구성이 실패 → replica가 `Failed`.
+### 7-3. 원리
+geo-replication을 생성하면 ACR은 기존 PE NIC에 **ipconfig 1개를 추가**하고, replication 리전의 data endpoint에 사설 IP를 할당한다.
+- [ ] Dynamic IP면 서브넷에서 가용 IP를 자동 할당받아 확장된다.
+- [ ] Static IP면 새 endpoint용 IP 자동 할당이 불가해 확장 단계가 실패할 수 있다.
 
-### 8-3. 대응 경로
-
-#### 8-3-A. 해결책 — PE를 Dynamic IP로 재구성
-> PE의 ipconfig 재구성/삭제 구간 동안 private pull이 일시 중단되므로 **반드시 유지보수 창에서 진행**한다.
-
-상세 전환 절차는 별도 가이드로 분리했다. 검증된 단일 업데이트 방식
-(`az network private-endpoint update --set ipConfigurations=...`)으로
-Dynamic⇄Static 전환, 전/후 검증, 제약·사전 체크를 포함한다.
-
-📎 **첨부: [PE Dynamic ⇄ Static IP 전환 가이드](./GUIDE-PE-IP-ALLOCATION-SWITCH.md)**
-
-요약:
-- [ ] 0) **선행 확인**: PE에 Static IP가 *반드시* 필요한 요구사항(방화벽 규칙 고정 등)이 있는지 점검.
-      필수 요구가 없으면 Dynamic 재구성이 권장 경로다.
-- [ ] 1) 전환 수행 — `az network private-endpoint update --set ipConfigurations='[]'`로
-      모든 멤버를 한 번에 Dynamic으로 되돌린다. (→ 첨부 가이드 3장)
-- [ ] 2) replica 생성 재시도
-  ```bash
-  az acr replication create -r {acr명} -l uksouth -o jsonc
-  ```
-- [ ] 3) 검증: 9단계(사후 검증) — replica `Succeeded`, PE `customDnsConfigs`에 `*.uksouth.data` 포함.
-
-#### 8-3-B. Static IP가 필수인 경우
-> Static IP가 불가피한 요구사항(예: 고정 IP 기반 방화벽 정책)이라면, 현재로선 geo-replication과 양립이
-> 어려우므로 8단계 확인 완료 후 8-4(지원 티켓)로 RP 측 공식 사유/대안을 확인한다.
-
-### 8-4. 에스컬레이션(케이스 오픈) — 8단계까지 확인 후에도 미해결 시
-- [ ] 아래 조건을 모두 만족할 때만 케이스 오픈
-  - 5단계(PE 정밀 진단) 점검 완료
-  - 6단계(해결 경로) 수행 또는 적용 불가 사유 기록
-  - 8-1~8-3 확인/조치 후에도 동일 증상 재현
-- [ ] Azure 지원 티켓 첨부 항목
-  - 에러 메시지 `Failed to replicate private endpoint`
-  - correlationId
-  - PE 구성(중앙 cross-subscription DNS Zone Group 사용 사실)
-  - 5~8 단계에서 수행한 명령/결과 요약
+### 7-4. 대응 경로
+- [ ] PE를 Dynamic IP로 재구성한다.
+- [ ] 유지보수 창에서 replica 생성 재시도한다.
+- [ ] 필요 시 [PE Dynamic ⇄ Static IP 전환 가이드](./GUIDE-PE-IP-ALLOCATION-SWITCH.md)를 따른다.
+- [ ] Static IP가 필수 요구사항이면 8번까지 확인 후 케이스 오픈한다.
 
 ---
 
-## 참고
+## 8. 사후 검증 (생성 성공 후)
 
-- ACR Geo-replication: https://learn.microsoft.com/azure/container-registry/container-registry-geo-replication
-- ACR Private Link: https://learn.microsoft.com/azure/container-registry/container-registry-private-link
-- 본 시나리오 상세: `../README.md`, `../DESIGN.md`, 보고서 `ACR_Private_GeoReplication_Report.docx`
-
----
-
-## 9. 사후 검증 (생성 성공 후)
-
-### 9-0. 확인 방법과 판정 기준
+### 8-1. 확인 방법과 판정 기준
 - [ ] replica 상태 확인
   ```bash
   az acr replication list -r {acr명} \
     --query "[].{replica:name, location:location, zoneRedundancy:zoneRedundancy, status:provisioningState}" -o table
   ```
-  - 판정: 대상 리전의 `status`가 `Succeeded`(또는 Ready)여야 함.
+  - [ ] 대상 리전의 `status`가 `Succeeded`(또는 Ready)여야 한다.
 - [ ] PE에 신규 data endpoint A레코드 등록 확인(`*.uksouth.data -> 사설 IP`).
 - [ ] 대상 리전 워크로드가 로컬 data endpoint로 직접 연결되는지 점검.
 
 실패 시 다음 액션:
-- replica 상태가 실패면 5단계로 복귀.
-- A레코드/연결 경로 미완성이면 5-1 또는 6-B 경로 재점검.
+- [ ] replica 상태가 실패면 5단계로 복귀.
+- [ ] A레코드/연결 경로 미완성이면 5-1 또는 6-2 경로를 다시 점검.
