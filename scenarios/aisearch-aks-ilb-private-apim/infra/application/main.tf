@@ -103,6 +103,36 @@ resource "azurerm_role_assignment" "aks_network" {
 # AKS 위 샘플 워크로드: 내부 LoadBalancer(ILB) 서비스
 # annotation azure-load-balancer-internal=true → 사설 IP만 노출.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# AKS 위 샘플 워크로드: "모델 엔드포인트" 모의 서버 (nginx + ConfigMap)
+#   GET /        → 모의 추론 JSON 응답
+#   GET /healthz → readiness/liveness 헬스 체크
+# 실제 GPU 모델 서빙(Triton/torchserve/vLLM)으로 교체 시 동일한 ILB 서비스로 노출한다.
+# ---------------------------------------------------------------------------
+resource "kubernetes_config_map" "sample" {
+  metadata {
+    name   = "model-endpoint-content"
+    labels = { app = "model-endpoint" }
+  }
+
+  data = {
+    "index.json" = jsonencode({
+      service = "model-endpoint"
+      status  = "ok"
+      message = "mock inference response from AKS internal LB"
+    })
+    "healthz"      = "healthy"
+    "default.conf" = <<-EOT
+      server {
+        listen 80;
+        default_type application/json;
+        location = /        { root /usr/share/nginx/html; try_files /index.json =404; }
+        location = /healthz { default_type text/plain; root /usr/share/nginx/html; try_files /healthz =404; }
+      }
+    EOT
+  }
+}
+
 resource "kubernetes_deployment" "sample" {
   metadata {
     name   = "model-endpoint"
@@ -110,7 +140,7 @@ resource "kubernetes_deployment" "sample" {
   }
 
   spec {
-    replicas = 1
+    replicas = var.sample_app_replicas
     selector {
       match_labels = { app = "model-endpoint" }
     }
@@ -120,10 +150,61 @@ resource "kubernetes_deployment" "sample" {
       }
       spec {
         container {
-          name  = "echo"
-          image = "mcr.microsoft.com/azuredocs/aks-helloworld:v1"
+          name  = "model-endpoint"
+          image = var.sample_app_image
           port {
             container_port = 80
+          }
+
+          volume_mount {
+            name       = "content"
+            mount_path = "/usr/share/nginx/html"
+          }
+          volume_mount {
+            name       = "nginx-conf"
+            mount_path = "/etc/nginx/conf.d"
+          }
+
+          readiness_probe {
+            http_get {
+              path = "/healthz"
+              port = 80
+            }
+            initial_delay_seconds = 5
+            period_seconds        = 10
+          }
+          liveness_probe {
+            http_get {
+              path = "/healthz"
+              port = 80
+            }
+            initial_delay_seconds = 10
+            period_seconds        = 20
+          }
+        }
+
+        volume {
+          name = "content"
+          config_map {
+            name = kubernetes_config_map.sample.metadata[0].name
+            items {
+              key  = "index.json"
+              path = "index.json"
+            }
+            items {
+              key  = "healthz"
+              path = "healthz"
+            }
+          }
+        }
+        volume {
+          name = "nginx-conf"
+          config_map {
+            name = kubernetes_config_map.sample.metadata[0].name
+            items {
+              key  = "default.conf"
+              path = "default.conf"
+            }
           }
         }
       }

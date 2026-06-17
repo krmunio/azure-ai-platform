@@ -64,6 +64,18 @@ variable "aks_node_count" {
   description = "기본 노드풀 노드 수"
 }
 
+variable "sample_app_image" {
+  type        = string
+  default     = "mcr.microsoft.com/oss/nginx/nginx:1.25.3"
+  description = "AKS에 배포할 샘플 모델 엔드포인트 컨테이너 이미지. 실제 모델 서빙(Triton/vLLM 등)으로 교체 가능."
+}
+
+variable "sample_app_replicas" {
+  type        = number
+  default     = 2
+  description = "샘플 앱 레플리카 수"
+}
+
 variable "apim_sku_name" {
   type        = string
   default     = "StandardV2_1"

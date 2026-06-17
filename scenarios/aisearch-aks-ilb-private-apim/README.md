@@ -40,7 +40,7 @@ AI Search ──SPL(Gateway)──▶ APIM Standard v2 (인바운드 PE + 아웃
 | --- | --- |
 | VNet + 서브넷 3종 | `snet-aks` / `snet-apim`(Microsoft.Web/serverFarms 위임) / `snet-pe` |
 | AKS | 경량 시스템 노드풀(**GPU 아님**) + Network Contributor 역할 |
-| 샘플 워크로드 | `kubernetes_service` type LoadBalancer + `azure-load-balancer-internal=true`(고정 `ilb_ip`) |
+| 샘플 워크로드(모델 엔드포인트) | `kubernetes_config_map` + `kubernetes_deployment`(nginx, 모의 추론 JSON `/`, `/healthz` probe) + `kubernetes_service` type LoadBalancer(`azure-load-balancer-internal=true`, 고정 `ilb_ip`) |
 | APIM | **StandardV2_1**, 아웃바운드 VNet 통합(`snet-apim`), API `service_url=http://{ilb_ip}` |
 | APIM 인바운드 PE | subresource `Gateway` (SPL 연결 대상) |
 | Azure AI Search | `basic`, public access OFF |
@@ -77,6 +77,17 @@ terraform apply
 
 > 중앙 zone에 spoke VNet 연결이 필요하면 application의 `vnet_id` 출력을 platform의
 > `linked_vnet_ids`에 넣고 platform을 다시 `apply` 한다.
+
+> **샘플 앱(모델 엔드포인트)**: application `apply`는 AKS에 모의 모델 서버(nginx + ConfigMap,
+> `GET /`=추론 JSON, `GET /healthz`=헬스)와 내부 LB 서비스를 함께 배포한다. `kubernetes` provider로
+> 자동 배포되며, 동일 워크로드를 [`k8s/sample-model-app.yaml`](./k8s/sample-model-app.yaml)로 `kubectl` 배포할 수도 있다.
+>
+> ```bash
+> az aks get-credentials -g "$(terraform output -raw resource_group_name)" -n "$(terraform output -raw aks_name)"
+> kubectl apply -f ../../k8s/sample-model-app.yaml   # Terraform 대신 수동 배포 시
+> kubectl get svc model-endpoint-ilb -w              # EXTERNAL-IP = ILB 사설 IP(ilb_ip)
+> ```
+
 
 ## 배포 후 수동 단계
 
@@ -118,6 +129,7 @@ terraform fmt -check -recursive
 ### 동작 검증 (apply 후, 사용자 환경)
 
 - AKS ILB가 사설 IP(`ilb_ip`)로 생성됐는지: `kubectl get svc model-endpoint-ilb`
+- 샘플 앱 응답 확인(클러스터 내부): `kubectl run curl --rm -it --image=mcr.microsoft.com/azure-cli -- curl -s http://<ilb_ip>/` → 모의 추론 JSON
 - APIM에서 ILB 백엔드 호출(테스트 콘솔 또는 VNet 내부 클라이언트): `GET https://<apim>/model/`
 - AI Search SPL 상태 `Approved` 후, AI Search가 APIM 사설 IP로 연결되는지 확인.
 
