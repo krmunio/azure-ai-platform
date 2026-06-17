@@ -29,7 +29,6 @@ scenarios/
 | 시나리오 | 설명 |
 | --- | --- |
 | [`acr-private-regional-replication`](./scenarios/acr-private-regional-replication/) | Private ACR + regional replication 에러 재현 (replica 구성 직전 환경까지 배포) |
-| [`acr-pe-ip-switch-downtime`](./scenarios/acr-pe-ip-switch-downtime/) | ACR Private Endpoint IP 유형(Static↔Dynamic) 전환 시 트래픽 중단 시간 측정 (probe + 전환 + 분석) |
 | [`aisearch-aks-ilb-private-apim`](./scenarios/aisearch-aks-ilb-private-apim/) | Azure AI Search가 사설 AKS ILB와 통신하는 BP — SPL이 LB/AKS 미지원이므로 APIM Standard v2(인바운드 PE + 아웃바운드 VNet 통합)를 `Gateway` group으로 중개 |
 
 ## 새 시나리오 추가
