@@ -1,0 +1,15 @@
+# 중앙 DNS를 배포할 구독 ID (null이면 기본 CLI 컨텍스트)
+# subscription_id = "{구독ID}"
+
+location            = "koreacentral"
+resource_group_name = "central-dns-rg"
+
+# application 레이어 배포 후, 그 vnet_id 출력을 아래에 추가하고 다시 apply 한다.
+# linked_vnet_ids = {
+#   "aisearch-aks-spoke" = "/subscriptions/{구독ID}/resourceGroups/{rg명}/providers/Microsoft.Network/virtualNetworks/{vnet명}"
+# }
+
+tags = {
+  scenario   = "aisearch-aks-ilb-private-apim"
+  managed_by = "terraform"
+}

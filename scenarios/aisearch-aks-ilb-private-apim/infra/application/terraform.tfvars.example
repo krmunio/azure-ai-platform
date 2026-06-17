@@ -1,0 +1,31 @@
+# 워크로드를 배포할 구독 ID (null이면 기본 CLI 컨텍스트)
+# subscription_id = "{구독ID}"
+
+location    = "koreacentral"
+name_prefix = "aisaks"
+
+vnet_address_space = ["10.60.0.0/16"]
+aks_subnet_prefix  = ["10.60.0.0/22"]
+apim_subnet_prefix = ["10.60.4.0/24"]
+pe_subnet_prefix   = ["10.60.5.0/24"]
+
+# AKS 내부 LoadBalancer 고정 IP (aks 서브넷 범위 내)
+ilb_ip = "10.60.0.100"
+
+# APIM: 인바운드 PE + 아웃바운드 VNet 통합 동시 지원을 위해 v2 SKU 필요
+apim_sku_name        = "StandardV2_1"
+apim_publisher_name  = "Contoso"
+apim_publisher_email = "admin@example.com"
+
+search_sku = "basic"
+
+# 중앙 DNS zone group 사용 시 아래 주석 해제 (cross-subscription 쓰기 권한 필요)
+# use_central_dns_zone_group        = true
+# central_dns_subscription_id       = "{구독ID}"
+# central_dns_resource_group_name   = "central-dns-rg"
+# central_apim_private_dns_zone_name = "privatelink.azure-api.net"
+
+tags = {
+  scenario   = "aisearch-aks-ilb-private-apim"
+  managed_by = "terraform"
+}
