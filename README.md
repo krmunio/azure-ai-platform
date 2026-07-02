@@ -30,6 +30,7 @@ scenarios/
 | --- | --- |
 | [`acr-private-regional-replication`](./scenarios/acr-private-regional-replication/) | Private ACR + regional replication 에러 재현 (replica 구성 직전 환경까지 배포) |
 | [`acr-pe-ip-switch-downtime`](./scenarios/acr-pe-ip-switch-downtime/) | ACR Private Endpoint IP 유형(Static↔Dynamic) 전환 시 트래픽 중단 시간 측정 (probe + 전환 + 분석) |
+| [`fhir-service-functional-tests`](./scenarios/fhir-service-functional-tests/) | Azure Health Data Services FHIR service 기능 검증 (CRUD·트랜잭션·검색·버전·$validate·$export·$everything) + 결과보고서 템플릿 |
 
 ## 새 시나리오 추가
 

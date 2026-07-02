@@ -43,7 +43,7 @@ FHIR service 인스턴스가 없으면 Bicep으로 배포한다. Azure Health Da
 cd scenarios/fhir-service-functional-tests/infra
 az login
 
-./deploy.sh <prefix>                 # prefix를 인자로 전달 (또는 인자 없이 실행하면 프롬프트)
+./deploy.sh <prefix>            # prefix를 인자로 전달 (또는 인자 없이 실행하면 프롬프트)
 # LOCATION=eastus ./deploy.sh <prefix>   # 위치 변경 시
 ```
 
