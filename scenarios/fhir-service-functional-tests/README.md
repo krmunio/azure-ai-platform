@@ -9,6 +9,7 @@ Azure Health Data Services의 **FHIR service**를 의료 시스템의 foundation
 - 대량 데이터: [`tests/load-synthea.sh`](./tests/load-synthea.sh) — Synthea 합성 Bundle 적재
 - 보고서: [`REPORT-TEMPLATE.md`](./REPORT-TEMPLATE.md) — 실행 로그를 붙여 제출용으로 채우는 템플릿
 - 실행 결과: [`REPORT.md`](./REPORT.md) — 실제 인스턴스 실행 결과보고서 (10 PASS / 0 FAIL / 1 SKIP)
+- 대량 적재 결과: [`SYNTHEA-LOAD-REPORT.md`](./SYNTHEA-LOAD-REPORT.md) — Synthea 적재 실측 (OK 7 / ERR 12, 500-entry 제한 확인)
 
 > **리소스명 규칙**: 스크립트/문서 어디에도 실제 리소스명·구독 ID를 넣지 않는다.
 > FHIR 엔드포인트는 `FHIR_URL` 환경변수로만 주입한다.
@@ -103,7 +104,7 @@ export FHIR_URL="https://{workspace명}-{fhir명}.fhir.azurehealthcareapis.com"
 - [x] Bicep 컴파일(`az bicep build`) 통과 — `infra/main.bicep`
 - [x] Mock FHIR 서버 대상 end-to-end 스모크 테스트 통과 — req/check/ETag/토큰 플러밍 검증
 - [x] **실제 Azure FHIR service 배포·실행 완료** — `deploy.sh <prefix>`로 배포, 시나리오 **10 PASS / 0 FAIL / 1 SKIP**
-- [ ] **Synthea 대량 적재 실행** — Java+Synthea 및 배포된 FHIR service 필요 (미수행)
+- [ ] ~~**Synthea 대량 적재 실행**~~ → [x] **완료** — 19개 Bundle 적재(OK 7 / ERR 12), 참조 대상 선적재 + transaction **500-entry 제한** 실측 확인 ([`SYNTHEA-LOAD-REPORT.md`](./SYNTHEA-LOAD-REPORT.md))
 
 > 실 인스턴스 확인 사항: Azure FHIR는 `DELETE` 시 `204`, `$export`는 export용 스토리지가
 > 구성돼야 하며 미구성 시 `400 "not enabled"`(스크립트는 SKIP 처리)를 반환한다.
