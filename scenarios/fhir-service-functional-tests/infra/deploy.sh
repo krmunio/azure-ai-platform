@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
 # Azure Health Data Services(FHIR service) 배포 + 실행 계정에 데이터 롤 부여.
-# 실제 리소스명은 커밋하지 말 것 — 환경변수/파라미터로만 주입한다.
+# prefix는 실행 시 입력받아 모든 리소스명을 파생한다(실제 prefix 커밋 방지).
 #
-#   export RG="{rg명}" LOCATION="koreacentral"
-#   export WORKSPACE_NAME="{workspace명}" FHIR_NAME="{fhir명}"
-#   ./deploy.sh
+#   ./deploy.sh <prefix>        # 인자로 전달, 또는
+#   ./deploy.sh                 # 프롬프트로 입력
+#   LOCATION=eastus ./deploy.sh <prefix>
 set -euo pipefail
 
-: "${RG:?RG(리소스그룹명) 환경변수 필요}"
-: "${WORKSPACE_NAME:?WORKSPACE_NAME 환경변수 필요}"
-: "${FHIR_NAME:?FHIR_NAME 환경변수 필요}"
+PREFIX="${1:-}"
+[ -n "$PREFIX" ] || read -rp "리소스 prefix 입력 (영문 소문자 3-11자): " PREFIX
+[[ "$PREFIX" =~ ^[a-z][a-z0-9]{2,10}$ ]] || { echo "prefix는 소문자로 시작하는 영숫자 3-11자여야 합니다: '$PREFIX'"; exit 1; }
+
 LOCATION="${LOCATION:-koreacentral}"
+RG="rg-${PREFIX}-fhir"
+WORKSPACE_NAME="${PREFIX}hdsws"     # 3-24자 영숫자, 전역 고유
+FHIR_NAME="${PREFIX}fhir"           # 3-24자
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+echo "prefix=$PREFIX  rg=$RG  workspace=$WORKSPACE_NAME  fhir=$FHIR_NAME  location=$LOCATION"
 
 az group create -n "$RG" -l "$LOCATION" -o none
 
@@ -33,5 +39,5 @@ az role assignment create --assignee-object-id "$ME" --assignee-principal-type U
 
 echo "[3/3] 완료. 시나리오 실행:"
 echo "  export FHIR_URL=\"$FHIR_URL\""
-echo "  ./tests/run-scenarios.sh"
+echo "  ../tests/run-scenarios.sh"
 # ponytail: $export용 스토리지+롤 부여는 미포함. export 검증 필요 시 별도 구성.
