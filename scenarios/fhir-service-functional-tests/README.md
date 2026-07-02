@@ -4,7 +4,9 @@ Azure Health Data Services의 **FHIR service**를 의료 시스템의 foundation
 핵심 FHIR 기능이 규격대로 동작하는지 재현 가능하게 검증하고 **결과보고서**로 남기기 위한 시나리오다.
 
 - 실행: [`tests/run-scenarios.sh`](./tests/run-scenarios.sh) — curl 기반, 8개 시나리오를 순차 실행하고 PASS/FAIL 로그 생성
+- 인프라: [`infra/`](./infra/) — FHIR service를 배포하는 Bicep + `deploy.sh`
 - 테스트 데이터: [`data/`](./data/) — 합성(synthetic) 리소스만 사용 (실제 환자/PII 없음)
+- 대량 데이터: [`tests/load-synthea.sh`](./tests/load-synthea.sh) — Synthea 합성 Bundle 적재
 - 보고서: [`REPORT-TEMPLATE.md`](./REPORT-TEMPLATE.md) — 실행 로그를 붙여 제출용으로 채우는 템플릿
 
 > **리소스명 규칙**: 스크립트/문서 어디에도 실제 리소스명·구독 ID를 넣지 않는다.
@@ -30,8 +32,26 @@ Azure Health Data Services의 **FHIR service**를 의료 시스템의 foundation
   (`FHIR Data Contributor` 이상; export 검증 시 `$export` 권한/스토리지 연결 구성)
 - `curl`, `python3`(JSON 검증용, 선택)
 
-> FHIR service 프로비저닝 자체(IaC)는 이 시나리오 범위 밖이다. 기존 인스턴스 또는
-> `az healthcareapis` / Bicep으로 별도 배포한 인스턴스를 대상으로 한다.
+> FHIR service가 없다면 [`infra/`](./infra/)로 배포한 뒤 대상으로 삼는다(아래 "인프라 배포").
+
+## 인프라 배포 (`infra/`)
+
+FHIR service 인스턴스가 없으면 Bicep으로 배포한다. Azure Health Data Services
+**workspace + FHIR service(R4)** 를 생성하고, 실행 계정에 `FHIR Data Contributor` 롤을 부여한다.
+
+```bash
+cd scenarios/fhir-service-functional-tests/infra
+az login
+
+export RG="{rg명}" LOCATION="koreacentral"
+export WORKSPACE_NAME="{workspace명}" FHIR_NAME="{fhir명}"   # 실제 이름 커밋 금지
+./deploy.sh          # 배포 후 FHIR_URL 을 출력
+```
+
+- 이름·위치는 모두 파라미터(`main.bicepparam.example` 참고)로 주입한다 — 하드코딩 없음.
+- FHIR service는 **system-assigned identity**를 가지며, `principalId`가 출력된다
+  (`$export`용 스토리지 롤 부여 시 사용).
+- `$export`용 스토리지 계정·롤은 범위에서 제외했다. 필요하면 별도 구성한다.
 
 ## 실행 절차
 
@@ -50,17 +70,37 @@ az login
 
 종료코드 `0` = 전부 PASS. 생성된 `.log` 파일을 보고서에 첨부한다.
 
-### 테스트 데이터 확장 (선택)
+### 테스트 데이터 확장 — Synthea (선택)
 
-실전에 가까운 대량 데이터가 필요하면 [Synthea](https://github.com/synthetichealth/synthea)로
-합성 FHIR Bundle을 생성해 `$import` 또는 transaction Bundle로 적재한다. **실제 환자 데이터는 사용 금지.**
+**Synthea**(Synthetic Patient Population Simulator, MITRE 오픈소스)는 실제 사람이 아닌
+통계·질병 모델 기반으로 **합성 환자의 일대기**(출생→질병→진료→처방→사망)를 시뮬레이션해
+현실적인 의료 데이터를 생성하는 도구다. **PII가 전혀 없어** 개발·데모·부하 테스트에 자유롭게 쓸 수 있다.
+
+- FHIR(R4 등) 출력을 지원 → `output/fhir/*.json` 에 Patient/Encounter/Observation/Condition 등을
+  담은 **transaction Bundle**을 생성한다.
+- 생성된 Bundle을 FHIR 서버에 POST하면 그대로 적재된다(대량 검색·`$export` 검증용 데이터 확보).
+
+```bash
+# 1) 합성 데이터 생성 (Java 11+ 필요)
+git clone https://github.com/synthetichealth/synthea && cd synthea
+./run_synthea -p 100          # 환자 100명 분량 FHIR Bundle 생성 → output/fhir/
+
+# 2) Azure FHIR service 에 적재 (엔드포인트는 환경변수로만)
+export FHIR_URL="https://{workspace명}-{fhir명}.fhir.azurehealthcareapis.com"
+/path/to/scenarios/fhir-service-functional-tests/tests/load-synthea.sh ./output/fhir
+```
+
+> **실제 환자 데이터는 사용 금지** — Synthea 합성 데이터만 사용한다.
+> 대량 적재는 transaction Bundle POST 대신 `$import`(비동기 대량 반입)로도 가능하다.
 
 ## 검증 상태
 
-- [x] 스크립트 bash 문법 검사 (`bash -n`) 통과
+- [x] 스크립트 bash 문법 검사 (`bash -n`) 통과 — `run-scenarios.sh`, `load-synthea.sh`, `deploy.sh`
 - [x] 테스트 데이터 JSON 유효성 통과
+- [x] Bicep 컴파일(`az bicep build`) 통과 — `infra/main.bicep`
 - [x] Mock FHIR 서버 대상 end-to-end 스모크 테스트 통과 (11/11) — req/check/ETag/토큰 플러밍 검증
-- [ ] **실제 Azure FHIR service 대상 실행** — 유효한 `FHIR_URL` + 데이터 롤 부여된 계정 필요 (환경 의존, 미수행)
+- [ ] **실제 Azure FHIR service 배포·실행** — 비용/시간 소요로 미수행 (구독은 로그인됨). `deploy.sh` 실행 시 배포 가능
+- [ ] **Synthea 대량 적재 실행** — Java+Synthea 및 배포된 FHIR service 필요 (미수행)
 
-> 스크립트 로직은 mock으로 검증했으나, `$export` 권한·프로파일 검증 세부 응답 등
-> 서비스별 동작은 실제 인스턴스에서 최종 확인이 필요하다.
+> 스크립트·Bicep 로직은 정적 검증 + mock으로 확인했으나, `$export` 권한·프로파일 검증 세부 응답 등
+> 서비스별 동작과 실제 배포 결과는 라이브 인스턴스에서 최종 확인이 필요하다.
