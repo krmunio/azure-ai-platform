@@ -1,0 +1,40 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:enc-1",
+      "resource": {
+        "resourceType": "Encounter",
+        "status": "finished",
+        "class": { "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB", "display": "ambulatory" },
+        "subject": { "reference": "Patient/PATIENT_ID" },
+        "period": { "start": "2026-07-01T09:00:00Z", "end": "2026-07-01T09:30:00Z" }
+      },
+      "request": { "method": "POST", "url": "Encounter" }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [ { "coding": [ { "system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "vital-signs" } ] } ],
+        "code": { "coding": [ { "system": "http://loinc.org", "code": "8867-4", "display": "Heart rate" } ] },
+        "subject": { "reference": "Patient/PATIENT_ID" },
+        "encounter": { "reference": "urn:uuid:enc-1" },
+        "effectiveDateTime": "2026-07-01T09:10:00Z",
+        "valueQuantity": { "value": 72, "unit": "beats/minute", "system": "http://unitsofmeasure.org", "code": "/min" }
+      },
+      "request": { "method": "POST", "url": "Observation" }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": { "coding": [ { "system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active" } ] },
+        "code": { "coding": [ { "system": "http://snomed.info/sct", "code": "38341003", "display": "Hypertension" } ] },
+        "subject": { "reference": "Patient/PATIENT_ID" },
+        "encounter": { "reference": "urn:uuid:enc-1" }
+      },
+      "request": { "method": "POST", "url": "Condition" }
+    }
+  ]
+}
