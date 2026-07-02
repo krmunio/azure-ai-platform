@@ -29,9 +29,8 @@ FHIR_URL="$(az deployment group create \
 echo "  FHIR_URL=$FHIR_URL"
 
 echo "[2/3] 실행 계정에 FHIR Data Contributor 롤 부여..."
-FHIR_ID="$(az resource show \
-  --resource-type Microsoft.HealthcareApis/workspaces/fhirservices \
-  -g "$RG" --name "$WORKSPACE_NAME/$FHIR_NAME" --query id -o tsv)"
+SUB="$(az account show --query id -o tsv)"
+FHIR_ID="/subscriptions/${SUB}/resourceGroups/${RG}/providers/Microsoft.HealthcareApis/workspaces/${WORKSPACE_NAME}/fhirservices/${FHIR_NAME}"
 ME="$(az ad signed-in-user show --query id -o tsv)"
 az role assignment create --assignee-object-id "$ME" --assignee-principal-type User \
   --role "FHIR Data Contributor" --scope "$FHIR_ID" -o none || \

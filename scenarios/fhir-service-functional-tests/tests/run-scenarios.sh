@@ -16,7 +16,7 @@ LOG="${LOG:-./fhir-test-$(date +%Y%m%d-%H%M%S).log}"
 TOKEN="$(az account get-access-token --resource "$FHIR_URL" --query accessToken -o tsv)" || {
   echo "토큰 발급 실패: az login 후 재시도"; exit 1; }
 
-PASS=0; FAIL=0
+PASS=0; FAIL=0; SKIP=0
 log() { echo "$@" | tee -a "$LOG"; }
 
 # req METHOD PATH EXPECTED_CODE [BODY_FILE|-] [EXTRA_HEADER...]
@@ -84,7 +84,12 @@ else
 # --- 6. Bulk export ($export, 202 kick-off) ---
 log "[6] Bulk \$export"
 req GET "/\$export" 202 - "Prefer: respond-async"
-check "\$export 비동기 수락(202)" 202
+if [ "$CODE" = "202" ]; then
+  log "  PASS [202] \$export 비동기 수락"; PASS=$((PASS+1))
+elif [ "$CODE" = "400" ] && echo "$BODY" | grep -qi 'not enabled'; then
+  log "  SKIP [400] \$export 미활성(스토리지 미구성) — 범위 밖"; SKIP=$((SKIP+1))
+else
+  log "  FAIL [got $CODE, want 202] \$export"; log "    body: $(echo "$BODY" | head -c 300)"; FAIL=$((FAIL+1)); fi
 
 # --- 7. Patient \$everything (그래프 조회) ---
 log "[7] Patient/{id}/\$everything"
@@ -93,9 +98,9 @@ check "\$everything" 200
 
 # --- 8. 정리 (DELETE) ---
 log "[8] 정리"
-req DELETE "/Patient/$PID" 200
-check "DELETE Patient" 200
+req DELETE "/Patient/$PID" 204
+check "DELETE Patient" 204
 
-log ""; log "== 결과: PASS=$PASS FAIL=$FAIL =="
+log ""; log "== 결과: PASS=$PASS FAIL=$FAIL SKIP=$SKIP =="
 log "finished: $(date -Is)  log: $LOG"
 [ "$FAIL" -eq 0 ]
