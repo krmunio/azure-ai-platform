@@ -43,7 +43,7 @@ FHIR service 인스턴스가 없으면 Bicep으로 배포한다. Azure Health Da
 cd scenarios/fhir-service-functional-tests/infra
 az login
 
-./deploy.sh <prefix>                 # prefix를 인자로 전달 (또는 인자 없이 실행하면 프롬프트)
+./deploy.sh <prefix>            # prefix를 인자로 전달 (또는 인자 없이 실행하면 프롬프트)
 # LOCATION=eastus ./deploy.sh <prefix>   # 위치 변경 시
 ```
 
@@ -100,9 +100,9 @@ export FHIR_URL="https://{workspace명}-{fhir명}.fhir.azurehealthcareapis.com"
 - [x] 스크립트 bash 문법 검사 (`bash -n`) 통과 — `run-scenarios.sh`, `load-synthea.sh`, `deploy.sh`
 - [x] 테스트 데이터 JSON 유효성 통과
 - [x] Bicep 컴파일(`az bicep build`) 통과 — `infra/main.bicep`
-- [x] Mock FHIR 서버 대상 end-to-end 스모크 테스트 통과 (11/11) — req/check/ETag/토큰 플러밍 검증
-- [ ] **실제 Azure FHIR service 배포·실행** — 비용/시간 소요로 미수행 (구독은 로그인됨). `deploy.sh` 실행 시 배포 가능
+- [x] Mock FHIR 서버 대상 end-to-end 스모크 테스트 통과 — req/check/ETag/토큰 플러밍 검증
+- [x] **실제 Azure FHIR service 배포·실행 완료** — `deploy.sh <prefix>`로 배포, 시나리오 **10 PASS / 0 FAIL / 1 SKIP**
 - [ ] **Synthea 대량 적재 실행** — Java+Synthea 및 배포된 FHIR service 필요 (미수행)
 
-> 스크립트·Bicep 로직은 정적 검증 + mock으로 확인했으나, `$export` 권한·프로파일 검증 세부 응답 등
-> 서비스별 동작과 실제 배포 결과는 라이브 인스턴스에서 최종 확인이 필요하다.
+> 실 인스턴스 확인 사항: Azure FHIR는 `DELETE` 시 `204`, `$export`는 export용 스토리지가
+> 구성돼야 하며 미구성 시 `400 "not enabled"`(스크립트는 SKIP 처리)를 반환한다.
