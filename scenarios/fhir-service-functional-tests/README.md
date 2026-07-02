@@ -43,14 +43,16 @@ FHIR service 인스턴스가 없으면 Bicep으로 배포한다. Azure Health Da
 cd scenarios/fhir-service-functional-tests/infra
 az login
 
-export RG="{rg명}" LOCATION="koreacentral"
-export WORKSPACE_NAME="{workspace명}" FHIR_NAME="{fhir명}"   # 실제 이름 커밋 금지
-./deploy.sh          # 배포 후 FHIR_URL 을 출력
+./deploy.sh <prefix>                 # prefix를 인자로 전달 (또는 인자 없이 실행하면 프롬프트)
+# LOCATION=eastus ./deploy.sh <prefix>   # 위치 변경 시
 ```
 
-- 이름·위치는 모두 파라미터(`main.bicepparam.example` 참고)로 주입한다 — 하드코딩 없음.
+- **prefix는 실행 시 입력**받아 모든 리소스명을 파생한다 — `rg-<prefix>-fhir`,
+  `<prefix>hdsws`(workspace), `<prefix>fhir`(FHIR service). 저장소에 실제 prefix를 커밋하지 않는다.
+- prefix 형식: 소문자로 시작하는 영숫자 3-11자.
 - FHIR service는 **system-assigned identity**를 가지며, `principalId`가 출력된다
   (`$export`용 스토리지 롤 부여 시 사용).
+- 배포 후 출력된 `FHIR_URL`을 export 하면 시나리오를 실행할 수 있다.
 - `$export`용 스토리지 계정·롤은 범위에서 제외했다. 필요하면 별도 구성한다.
 
 ## 실행 절차
