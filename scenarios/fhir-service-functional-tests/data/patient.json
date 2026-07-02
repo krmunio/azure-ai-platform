@@ -1,0 +1,13 @@
+{
+  "resourceType": "Patient",
+  "meta": { "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"] },
+  "identifier": [
+    { "system": "urn:oid:2.16.840.1.113883.19.5", "value": "SAMPLE-MRN-0001" }
+  ],
+  "active": true,
+  "name": [ { "use": "official", "family": "Sample", "given": ["Test", "Patient"] } ],
+  "telecom": [ { "system": "phone", "value": "+1-000-000-0000", "use": "home" } ],
+  "gender": "female",
+  "birthDate": "1990-01-01",
+  "address": [ { "line": ["1 Example St"], "city": "Sampletown", "state": "WA", "postalCode": "00000", "country": "US" } ]
+}
