@@ -8,6 +8,7 @@ Azure Health Data Services의 **FHIR service**를 의료 시스템의 foundation
 - 테스트 데이터: [`data/`](./data/) — 합성(synthetic) 리소스만 사용 (실제 환자/PII 없음)
 - 대량 데이터: [`tests/load-synthea.sh`](./tests/load-synthea.sh) — Synthea 합성 Bundle 적재
 - 보고서: [`REPORT-TEMPLATE.md`](./REPORT-TEMPLATE.md) — 실행 로그를 붙여 제출용으로 채우는 템플릿
+- 실행 결과: [`REPORT.md`](./REPORT.md) — 실제 인스턴스 실행 결과보고서 (10 PASS / 0 FAIL / 1 SKIP)
 
 > **리소스명 규칙**: 스크립트/문서 어디에도 실제 리소스명·구독 ID를 넣지 않는다.
 > FHIR 엔드포인트는 `FHIR_URL` 환경변수로만 주입한다.
