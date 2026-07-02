@@ -16,9 +16,19 @@ TOKEN="$(az account get-access-token --resource "$FHIR_URL" --query accessToken 
 
 OK=0; ERR=0
 shopt -s nullglob
-files=("$DIR"/*.json)
+# Synthea 환자 번들은 Organization/Practitioner 를 참조하므로, 참조 대상인
+# hospitalInformation / practitionerInformation 번들을 먼저 적재한다(참조 무결성).
+info=("$DIR"/hospitalInformation*.json "$DIR"/practitionerInformation*.json)
+patients=()
+for f in "$DIR"/*.json; do
+  case "$(basename "$f")" in
+    hospitalInformation*|practitionerInformation*) ;;
+    *) patients+=("$f") ;;
+  esac
+done
+files=("${info[@]}" "${patients[@]}")
 [ ${#files[@]} -gt 0 ] || { echo "$DIR 에 *.json Bundle이 없습니다"; exit 1; }
-echo "적재 대상: ${#files[@]} 개 Bundle → $FHIR_URL"
+echo "적재 대상: ${#files[@]} 개 Bundle (참조 대상 ${#info[@]} 선적재) → $FHIR_URL"
 
 for f in "${files[@]}"; do
   # Synthea Bundle은 type=transaction 이므로 base URL에 POST한다.
