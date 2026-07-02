@@ -1,0 +1,8 @@
+// 예시 파라미터. 복사해서 실제 이름을 채운 뒤 사용한다(실제 값 커밋 금지).
+//   cp main.bicepparam.example main.bicepparam
+using './main.bicep'
+
+param workspaceName = '{workspace명}'   // 예: hdswsdev01 (전역 고유, 영숫자)
+param fhirServiceName = '{fhir명}'      // 예: fhirdev01
+param location = 'koreacentral'
+param fhirVersion = 'fhir-R4'

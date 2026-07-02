@@ -1,0 +1,5 @@
+{
+  "resourceType": "Patient",
+  "gender": "not-a-valid-gender-code",
+  "birthDate": "01/01/1990"
+}

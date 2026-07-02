@@ -1,0 +1,12 @@
+{
+  "resourceType": "Patient",
+  "id": "PATIENT_ID",
+  "meta": { "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"] },
+  "identifier": [
+    { "system": "urn:oid:2.16.840.1.113883.19.5", "value": "SAMPLE-MRN-0001" }
+  ],
+  "active": true,
+  "name": [ { "use": "official", "family": "Sample-Updated", "given": ["Test", "Patient"] } ],
+  "gender": "female",
+  "birthDate": "1990-01-01"
+}
