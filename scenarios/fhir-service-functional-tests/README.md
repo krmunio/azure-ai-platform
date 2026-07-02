@@ -1,5 +1,7 @@
 # Azure FHIR Service 기능 검증 시나리오
 
+*이 문서의 [English 버전](./README.en.md).*
+
 Azure Health Data Services의 **FHIR service**를 의료 시스템의 foundation으로 채택하기 전,
 핵심 FHIR 기능이 규격대로 동작하는지 재현 가능하게 검증하고 **결과보고서**로 남기기 위한 시나리오다.
 

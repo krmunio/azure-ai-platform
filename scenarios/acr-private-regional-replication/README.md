@@ -1,5 +1,7 @@
 # ACR Private + Regional Replication 재현 시나리오
 
+*이 문서의 [English 버전](./README.en.md).*
+
 Azure Container Registry(ACR)를 **private**(public network access 비활성화 + Private Endpoint)으로
 구성한 상태에서 **regional replication(geo-replication)** 을 추가할 때 발생하는 에러를 재현하기 위한
 시나리오다.
