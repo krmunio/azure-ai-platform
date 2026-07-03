@@ -37,3 +37,12 @@ scenarios/
 1. `scenarios/<이름>/` 폴더 생성 (kebab-case)
 2. `infra/`에 IaC 작성, `README.md`에 배포/검증 절차 문서화
 3. 위 인덱스 표에 한 줄 추가
+
+## 케이스 스터디
+
+`scenarios/`(배포·재현 가능한 IaC)와 별개로, 실제 사례 + 참조 아키텍처(논리/물리)를
+정리한 문헌은 `case-studies/<이름>/`에 둔다. 코드는 없고 문서만 있다.
+
+| 케이스 스터디 | 설명 |
+| --- | --- |
+| [`stanford-agentic-ai-healthcare`](./case-studies/stanford-agentic-ai-healthcare/) | Stanford Medicine Tumor Board 멀티에이전트(Azure AI Foundry) 사례 + 논리/물리 아키텍처 + 규정·보안·신뢰성 고려사항 |
