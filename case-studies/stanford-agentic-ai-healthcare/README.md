@@ -2,6 +2,8 @@
 
 > 출처: [Transforming Healthcare with Agentic AI: Stanford and Microsoft Lead the Future (WindowsForum, 2025-05-23)](https://windowsforum.com/threads/transforming-healthcare-with-agentic-ai-stanford-and-microsoft-lead-the-future.367652/)
 
+**이 폴더**: [ARCHITECTURE.md](./ARCHITECTURE.md) (Mermaid 다이어그램) · [POC-PLAN.md](./POC-PLAN.md) (구현 계획) · [infra/](./infra/) (Terraform 스캐폴딩)
+
 ---
 
 ## 1. Stanford Medicine 케이스 스터디 상세
