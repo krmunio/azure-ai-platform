@@ -34,6 +34,15 @@ scenarios/
 | [`acr-pe-ip-switch-downtime`](./scenarios/acr-pe-ip-switch-downtime/) | ACR Private Endpoint IP 유형(Static↔Dynamic) 전환 시 트래픽 중단 시간 측정 (probe + 전환 + 분석) |
 | [`fhir-service-functional-tests`](./scenarios/fhir-service-functional-tests/) | Azure Health Data Services FHIR service 기능 검증 (CRUD·트랜잭션·검색·버전·$validate·$export·$everything) + 결과보고서 템플릿 |
 
+## 케이스 스터디
+
+실제 사례를 조사해 Azure 구현 참조 아키텍처로 정리한 문서.
+
+| 케이스 스터디 | 설명 |
+| --- | --- |
+| [`stanford-agentic-ai-healthcare`](./case-studies/stanford-agentic-ai-healthcare/) | Stanford Medicine Tumor Board 멀티에이전트 오케스트레이션 → Azure AI Foundry 구현 아키텍처 |
+| [`mayo-clinic-platform`](./case-studies/mayo-clinic-platform/) | Mayo Clinic Platform 연합 "Data Behind Glass" 분산 데이터 네트워크(Discover/Validate/Deploy) → Azure 참조 아키텍처 |
+
 ## 새 시나리오 추가
 
 1. `scenarios/<이름>/` 폴더 생성 (kebab-case)
