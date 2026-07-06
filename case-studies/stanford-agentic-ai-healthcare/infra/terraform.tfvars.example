@@ -1,0 +1,15 @@
+# 실제 값은 복사해서 terraform.tfvars 로 저장 (tfvars는 커밋 금지).
+# 실제 리소스명/구독ID를 이 예시 파일에 직접 박지 말 것 (AGENTS.md 규칙).
+
+# subscription_id = "<your-subscription-id>"
+# location        = "koreacentral"
+# name_prefix     = "tbagent"
+
+# model_deployments = [
+#   { name = "reasoning", model = "gpt-4o", version = "2024-11-20", capacity = 20 },
+# ]
+
+# tags = {
+#   case_study = "stanford-agentic-ai-healthcare"
+#   env        = "poc"
+# }
