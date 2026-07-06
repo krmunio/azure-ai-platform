@@ -2,6 +2,8 @@
 
 [← 케이스 스터디 본문](./README.md)의 ASCII 다이어그램을 GitHub 렌더링용 Mermaid로 옮긴 것.
 
+> English version: [ARCHITECTURE.en.md](./ARCHITECTURE.en.md)
+
 ## 논리 아키텍처 (Logical)
 
 ```mermaid

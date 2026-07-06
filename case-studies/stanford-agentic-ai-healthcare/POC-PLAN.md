@@ -3,6 +3,8 @@
 > 목표: Stanford 케이스의 **일부**를 Azure로 실제 배포·검증 가능한 최소 PoC로 좁힌다.
 > 전체 5-에이전트 프로덕션이 아니라, ROI가 명확한 **단일 유스케이스부터** 시작한다.
 
+> English version: [POC-PLAN.en.md](./POC-PLAN.en.md)
+
 ## 0. PoC 범위 (의도적 축소)
 
 - **In**: Orchestrator + 에이전트 2종(**타임라인 생성**, **임상시험 매칭**) + RAG(AI Search) + HITL 승인.
