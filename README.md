@@ -1,5 +1,7 @@
 # azure-ai-platform
 
+*이 문서의 [English 버전](./README.en.md).*
+
 Azure 리소스 배포 및 검증을 위한 **시나리오 기반** 리포지토리.
 각 시나리오는 독립된 작은 repo처럼, 자체 인프라 배포 코드와 문서를 가진다.
 
