@@ -4,6 +4,8 @@
 
 **이 폴더**: [ARCHITECTURE.md](./ARCHITECTURE.md) (Mermaid 다이어그램) · [POC-PLAN.md](./POC-PLAN.md) (구현 계획) · [infra/](./infra/) (Terraform 스캐폴딩)
 
+> English version: [README.en.md](./README.en.md)
+
 ---
 
 ## 1. Stanford Medicine 케이스 스터디 상세
