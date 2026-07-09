@@ -56,7 +56,7 @@ resource "azurerm_cognitive_deployment" "chat_primary" {
   }
 
   sku {
-    name     = "Standard"
+    name     = var.chat_deployment_sku
     capacity = var.chat_capacity
   }
 }
@@ -84,7 +84,7 @@ resource "azurerm_cognitive_deployment" "chat_secondary" {
   }
 
   sku {
-    name     = "Standard"
+    name     = var.chat_deployment_sku
     capacity = var.chat_capacity
   }
 }
@@ -102,7 +102,7 @@ resource "azurerm_cognitive_deployment" "embeddings" {
   }
 
   sku {
-    name     = "Standard"
+    name     = var.embeddings_deployment_sku
     capacity = var.chat_capacity
   }
 }
@@ -175,26 +175,48 @@ resource "azurerm_api_management_diagnostic" "appi" {
 
 ########################################
 # Semantic cache 외부 캐시 — Azure Managed Redis (RediSearch) + APIM 연결
+# (구형 Redis Enterprise는 신규 생성 중단 → Managed Redis SKU 사용, azapi로 관리)
 ########################################
-resource "azurerm_redis_enterprise_cluster" "this" {
-  count               = var.enable_semantic_cache ? 1 : 0
-  name                = "${var.name_prefix}-redis-${random_string.suffix.result}"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.this.name
-  sku_name            = "Enterprise_E5-2"
-  tags                = var.tags
+resource "azapi_resource" "redis" {
+  count     = var.enable_semantic_cache ? 1 : 0
+  type      = "Microsoft.Cache/redisEnterprise@2024-10-01"
+  name      = "${var.name_prefix}-redis-${random_string.suffix.result}"
+  parent_id = azurerm_resource_group.this.id
+  location  = var.location
+  tags      = var.tags
+
+  body = {
+    sku = { name = var.redis_sku }
+  }
+
+  response_export_values = ["properties.hostName"]
 }
 
-resource "azurerm_redis_enterprise_database" "this" {
-  count             = var.enable_semantic_cache ? 1 : 0
-  name              = "default"
-  cluster_id        = azurerm_redis_enterprise_cluster.this[0].id
-  clustering_policy = "EnterpriseCluster"
-  client_protocol   = "Encrypted"
+resource "azapi_resource" "redis_db" {
+  count     = var.enable_semantic_cache ? 1 : 0
+  type      = "Microsoft.Cache/redisEnterprise/databases@2024-10-01"
+  name      = "default"
+  parent_id = azapi_resource.redis[0].id
 
-  module {
-    name = "RediSearch"
+  body = {
+    properties = {
+      clientProtocol   = "Encrypted"
+      clusteringPolicy = "EnterpriseCluster"
+      evictionPolicy   = "NoEviction"
+      modules          = [{ name = "RediSearch" }]
+    }
   }
+}
+
+# Managed Redis 데이터베이스 접근 키 조회 (연결 문자열 구성용)
+resource "azapi_resource_action" "redis_keys" {
+  count       = var.enable_semantic_cache ? 1 : 0
+  type        = "Microsoft.Cache/redisEnterprise/databases@2024-10-01"
+  resource_id = azapi_resource.redis_db[0].id
+  action      = "listKeys"
+  method      = "POST"
+
+  response_export_values = ["primaryKey"]
 }
 
 resource "azurerm_api_management_redis_cache" "this" {
@@ -203,10 +225,10 @@ resource "azurerm_api_management_redis_cache" "this" {
   api_management_id = azurerm_api_management.this.id
   connection_string = format(
     "%s:10000,password=%s,ssl=True,abortConnect=False",
-    azurerm_redis_enterprise_cluster.this[0].hostname,
-    azurerm_redis_enterprise_database.this[0].primary_access_key
+    azapi_resource.redis[0].output.properties.hostName,
+    azapi_resource_action.redis_keys[0].output.primaryKey
   )
-  redis_cache_id = azurerm_redis_enterprise_database.this[0].id
+  redis_cache_id = azapi_resource.redis_db[0].id
 }
 
 ########################################

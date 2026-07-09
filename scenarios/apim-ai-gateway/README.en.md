@@ -44,7 +44,18 @@ observability, then **measures each benefit**.
 - Quota to deploy Azure OpenAI and the chosen model (e.g. `gpt-4o-mini`)
 - Rights to create APIM v2 and (optionally) Redis Enterprise
 
-> **Note**: APIM v2 provisioning takes tens of minutes; Redis Enterprise also takes a while.
+> **Note**: APIM v2 provisioning takes tens of minutes; Managed Redis also takes a while.
+
+### Model SKU / region availability
+
+Model deployment may fail depending on your subscription quota and regional availability.
+
+- `SpecialFeatureOrQuotaIdRequired` / `SKU 'Standard' ... not supported in region`
+  → keep `chat_deployment_sku = "GlobalStandard"` (default), or set `"Standard"` if you only have regional quota.
+- If a model isn't offered in a region, change `location`/`secondary_location` to a supported one.
+- If `text-embedding-3-small` isn't supported in the region, adjust `embeddings_deployment_sku`/region.
+- Redis Enterprise (legacy) is retired for new creates, so semantic cache uses **Azure Managed Redis**
+  (`redis_sku`, default `Balanced_B0`).
 
 ## Deploy
 

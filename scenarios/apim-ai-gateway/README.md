@@ -42,7 +42,17 @@
 - 구독에 Azure OpenAI 및 사용 모델(예: `gpt-4o-mini`) 배포 쿼터
 - APIM v2 및 (옵션) Redis Enterprise 생성 권한
 
-> **참고**: APIM(v2) 프로비저닝은 수십 분, Redis Enterprise도 시간이 걸린다. 첫 배포는 여유를 둔다.
+> **참고**: APIM(v2) 프로비저닝은 수십 분, Managed Redis도 시간이 걸린다. 첫 배포는 여유를 둔다.
+
+### 모델 SKU / 리전 가용성
+
+모델 배포는 구독의 쿼터·리전 가용성에 따라 실패할 수 있다.
+
+- `SpecialFeatureOrQuotaIdRequired` / `SKU 'Standard' ... not supported in region`
+  → 배포 SKU를 `chat_deployment_sku = "GlobalStandard"`(기본값)로 두거나, 지역 쿼터만 있으면 `"Standard"`로 조정.
+- 특정 리전에서 모델이 없으면 `location`/`secondary_location`을 가용 리전으로 변경한다.
+- 임베딩(`text-embedding-3-small`)이 해당 리전에서 미지원이면 `embeddings_deployment_sku`/리전을 조정.
+- Redis Enterprise(구형)는 신규 생성이 중단되었으므로, semantic cache는 **Azure Managed Redis**(`redis_sku`, 기본 `Balanced_B0`)를 사용한다.
 
 ## 배포 절차
 

@@ -9,9 +9,10 @@ name_prefix = "aigw"
 # apim_sku_name   = "StandardV2_1"   # BasicV2_1 / Premium_1 등 (Consumption 제외)
 
 # --- 모델 ---
-# chat_model_name    = "gpt-4o-mini"
-# chat_model_version = "2024-07-18"
-# chat_capacity      = 10            # load balancing 검증 시 작게(예: 1) 두면 429 유도 쉬움
+# chat_model_name     = "gpt-4o-mini"
+# chat_model_version  = "2024-07-18"
+# chat_capacity       = 10           # load balancing 검증 시 작게(예: 1) 두면 429 유도 쉬움
+# chat_deployment_sku = "GlobalStandard"   # 리전 지원 넓음. regional 쿼터만 있으면 "Standard"
 
 # --- 예시1: 토큰 제한 ---
 # tokens_per_minute = 500            # 낮출수록 스로틀링(429) 재현 쉬움
@@ -28,6 +29,8 @@ name_prefix = "aigw"
 # enable_semantic_cache          = true
 # embeddings_model_name          = "text-embedding-3-small"
 # embeddings_model_version       = "1"
+# embeddings_deployment_sku      = "GlobalStandard"   # 리전 미지원이면 "Standard"
+# redis_sku                      = "Balanced_B0"      # Managed Redis(RediSearch 포함) 최소 SKU
 # semantic_cache_score_threshold = 0.05
 
 # --- 관측성 ---

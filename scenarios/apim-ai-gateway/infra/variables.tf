@@ -73,6 +73,21 @@ variable "chat_capacity" {
   description = "채팅 배포 용량(1000 TPM 단위). load balancing 검증을 위해 의도적으로 작게 둘 수 있음"
 }
 
+variable "chat_deployment_sku" {
+  type        = string
+  default     = "GlobalStandard"
+  description = <<-EOT
+    채팅 모델 배포 SKU. GlobalStandard가 리전 지원이 가장 넓다.
+    특정 리전에서 지역(regional) 쿼터만 있으면 "Standard"로, PTU 검증이면 "ProvisionedManaged"로 변경.
+  EOT
+}
+
+variable "embeddings_deployment_sku" {
+  type        = string
+  default     = "GlobalStandard"
+  description = "임베딩 모델 배포 SKU (semantic cache 활성화 시). 리전 미지원이면 Standard로 변경"
+}
+
 variable "embeddings_model_name" {
   type        = string
   default     = "text-embedding-3-small"
@@ -142,6 +157,16 @@ variable "semantic_cache_score_threshold" {
   type        = number
   default     = 0.05
   description = "semantic cache 유사도 점수 임계값 (작을수록 엄격)"
+}
+
+variable "redis_sku" {
+  type        = string
+  default     = "Balanced_B0"
+  description = <<-EOT
+    semantic cache용 Azure Managed Redis SKU (Microsoft.Cache/redisEnterprise).
+    RediSearch 모듈이 포함된 최소 SKU. 예: Balanced_B0, MemoryOptimized_M10.
+    (구형 Enterprise_E* SKU는 신규 생성이 중단되어 사용하지 않는다.)
+  EOT
 }
 
 variable "enable_observability" {
