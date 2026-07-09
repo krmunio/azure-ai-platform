@@ -1,0 +1,22 @@
+== APIM AI Gateway 기능/이점 검증 ==
+gateway: https://aigw-apim-12w8tm.azure-api.net
+started: 2026-07-09T15:26:51+09:00
+
+[1] Keyless 연결 (Managed Identity → Azure OpenAI, 키 미사용)
+  PASS [200] 프록시 경유 chat completion 성공 (keyless)
+
+[2] 토큰 제한 policy (TPM 초과 시 429)
+  요청 #17 → 429 (Retry-After: 24)
+  PASS 토큰 한도 초과 시 429로 스로틀링됨 (비용/남용 제어 이점)
+  (정보) x-ratelimit-remaining-tokens 헤더 관측됨
+
+[3] 로드밸런싱 + 서킷브레이커 (Pool 백엔드, 부하 하 성공률)
+  12회 중 게이트웨이 정상 처리(200/429): 7
+  FAIL 성공률 저조 — 백엔드/circuit breaker/quota 상태 확인
+
+[4] 시맨틱 캐싱 (유사 프롬프트 2회차 지연 급감)
+  1회차: code=401 time=0.282511s / 2회차(유사): code=200 time=1.095400s
+  SKIP 캐시 효과 불명확 — enable_semantic_cache=true(Redis) 여부/임계값 확인
+
+== 결과: PASS=2 FAIL=1 SKIP=1 ==
+finished: 2026-07-09T15:29:44+09:00  log: ./aigw-test-20260709-152651.log
