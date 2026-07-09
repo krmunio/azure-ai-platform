@@ -33,6 +33,7 @@ scenarios/
 | [`acr-private-regional-replication`](./scenarios/acr-private-regional-replication/) | Reproduce the error when adding regional replication to a private ACR (deploys the environment up to just before replica configuration) |
 | [`acr-pe-ip-switch-downtime`](./scenarios/acr-pe-ip-switch-downtime/) | Measure traffic downtime when switching an ACR Private Endpoint IP type (Static ↔ Dynamic) (probe + switch + analysis) |
 | [`fhir-service-functional-tests`](./scenarios/fhir-service-functional-tests/) | Azure Health Data Services FHIR service functional validation (CRUD, transaction, search, versioning, $validate, $export, $everything) + result report template |
+| [`apim-ai-gateway`](./scenarios/apim-ai-gateway/) | Deploy & validate APIM as an AI Gateway (token limit, load balancing + circuit breaker, semantic caching, keyless MI, token metrics) + benefit-measuring scripts |
 
 ## Adding a new scenario
 

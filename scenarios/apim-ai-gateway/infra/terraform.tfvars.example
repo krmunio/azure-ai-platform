@@ -1,0 +1,36 @@
+location    = "koreacentral"
+name_prefix = "aigw"
+
+# subscription_id = "<subscription-id>"
+
+# --- APIM ---
+# publisher_name  = "AI Platform Team"
+# publisher_email = "apim-admin@example.com"
+# apim_sku_name   = "StandardV2_1"   # BasicV2_1 / Premium_1 등 (Consumption 제외)
+
+# --- 모델 ---
+# chat_model_name    = "gpt-4o-mini"
+# chat_model_version = "2024-07-18"
+# chat_capacity      = 10            # load balancing 검증 시 작게(예: 1) 두면 429 유도 쉬움
+
+# --- 예시1: 토큰 제한 ---
+# tokens_per_minute = 500            # 낮출수록 스로틀링(429) 재현 쉬움
+
+# --- 예시2: 로드밸런싱 + 서킷브레이커 ---
+# enable_load_balancing      = true
+# secondary_location         = "japaneast"
+# primary_backend_weight     = 50
+# secondary_backend_weight   = 50
+# primary_backend_priority   = 1     # 작을수록 우선(PTU-우선 라우팅 모사)
+# secondary_backend_priority = 1
+
+# --- 예시3: 시맨틱 캐싱 (Azure Managed Redis 프로비저닝 → 비용/시간 증가) ---
+# enable_semantic_cache          = true
+# embeddings_model_name          = "text-embedding-3-small"
+# embeddings_model_version       = "1"
+# semantic_cache_score_threshold = 0.05
+
+# --- 관측성 ---
+# enable_observability = true
+
+# tags = { scenario = "apim-ai-gateway", managed_by = "terraform" }

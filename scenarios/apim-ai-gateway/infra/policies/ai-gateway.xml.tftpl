@@ -1,0 +1,64 @@
+<!--
+  APIM AI Gateway API-scope policy (templatefile로 생성됨).
+  PDF 예시 반영: ① 토큰 제한 ② 로드밸런싱/서킷브레이커(backend pool) ③ 시맨틱 캐싱 + Keyless(MI).
+  주의: 이 파일은 Terraform templatefile() 입력이다. $${...}는 Terraform 보간, @(...)는 APIM 식이다.
+-->
+<policies>
+  <inbound>
+    <base />
+
+    <!-- 예시1: 토큰 제한 (TPM). 구독 ID 기준으로 분당 토큰 스로틀링 → 비용/남용 제어 -->
+    <azure-openai-token-limit
+      counter-key="@(context.Subscription.Id)"
+      tokens-per-minute="${tokens_per_minute}"
+      estimate-prompt-tokens="false"
+      remaining-tokens-header-name="x-ratelimit-remaining-tokens"
+      tokens-consumed-header-name="x-ratelimit-consumed-tokens" />
+
+%{ if enable_observability ~}
+    <!-- 관측성: 소비자별 토큰 사용량을 App Insights 커스텀 메트릭으로 방출 -->
+    <azure-openai-emit-token-metric namespace="ai-gateway">
+      <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
+      <dimension name="API ID" value="@(context.Api.Id)" />
+    </azure-openai-emit-token-metric>
+%{ endif ~}
+
+%{ if enable_semantic_cache ~}
+    <!-- 예시3: 시맨틱 캐싱 lookup — 유사 프롬프트 재사용으로 지연/비용 절감 -->
+    <azure-openai-semantic-cache-lookup
+      score-threshold="${semantic_score}"
+      embeddings-backend-id="${embeddings_backend_id}"
+      embeddings-backend-auth="system-assigned">
+      <vary-by>@(context.Subscription.Id)</vary-by>
+    </azure-openai-semantic-cache-lookup>
+%{ endif ~}
+
+    <!-- Keyless: 관리 ID로 Azure OpenAI 인증 (키 미사용) -->
+    <authentication-managed-identity
+      resource="${cognitive_services_aud}"
+      output-token-variable-name="managed-id-access-token"
+      ignore-error="false" />
+    <set-header name="Authorization" exists-action="override">
+      <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+    </set-header>
+
+    <!-- 예시2: 로드밸런싱/서킷브레이커 — Pool(또는 단일) backend로 라우팅 -->
+    <set-backend-service backend-id="${backend_id}" />
+  </inbound>
+
+  <backend>
+    <base />
+  </backend>
+
+  <outbound>
+    <base />
+%{ if enable_semantic_cache ~}
+    <!-- 시맨틱 캐싱 store — 응답을 임베딩과 함께 캐시에 저장 -->
+    <azure-openai-semantic-cache-store duration="120" />
+%{ endif ~}
+  </outbound>
+
+  <on-error>
+    <base />
+  </on-error>
+</policies>
