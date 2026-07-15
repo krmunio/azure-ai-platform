@@ -45,6 +45,16 @@ scenarios/
 | [`stanford-agentic-ai-healthcare`](./case-studies/stanford-agentic-ai-healthcare/) | Stanford Medicine Tumor Board 멀티에이전트(Azure AI Foundry) 사례 + 논리/물리 아키텍처 + 규정·보안·신뢰성 고려사항 |
 | [`mayo-clinic-platform`](./case-studies/mayo-clinic-platform/) | Mayo Clinic Platform 연합 "Data Behind Glass" 분산 데이터 네트워크(Discover/Validate/Deploy) → Azure 참조 아키텍처 |
 
+## 지식 베이스 (docs)
+
+`scenarios/`·`case-studies/`와 별개로, 특정 사례에 묶이지 않는 **개념 정리·컴플라이언스
+가이드** 등 범용 참조 문서는 [`docs/`](./docs/)에 둔다. (개념/패턴, 규정 가이드 등)
+
+| 영역 | 설명 |
+| --- | --- |
+| [`docs/concepts`](./docs/concepts/) | 개념·패턴 정리 (facade 패턴, CDW 등) |
+| [`docs/compliance`](./docs/compliance/) | 규정·거버넌스 가이드 (국내 의료데이터 클라우드 이관 등) |
+
 ## 새 시나리오 추가
 
 1. `scenarios/<이름>/` 폴더 생성 (kebab-case)
