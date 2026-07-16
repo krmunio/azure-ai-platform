@@ -28,6 +28,7 @@ docs/
 | [`ai-gateway`](./concepts/ai-gateway.md) | AI Gateway — LLM 앞단 관리 계층(APIM), 토큰 제한·캐싱·라우팅·관측성 |
 | [`clinical-data-warehouse`](./concepts/clinical-data-warehouse.md) | CDW — 임상 데이터 웨어하우스, 2차 활용(연구·AI) 기반 |
 | [`dw-lake-lakehouse-delta`](./concepts/dw-lake-lakehouse-delta.md) | Data Warehouse · Data Lake · Lakehouse · Delta Lake 비교 + 의료 매핑 |
+| [`smart-on-fhir`](./concepts/smart-on-fhir.md) | SMART on FHIR — 의료 앱의 FHIR 접근 표준(OAuth2 + OIDC + FHIR), 스코프·Launch 흐름 |
 
 ### 컴플라이언스 (`compliance/`)
 
