@@ -1,0 +1,1013 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Azure infrastructure overview sample. Replace template placeholders after import.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "icon": "doc",
+      "tags": [],
+      "targetBlank": true,
+      "title": "Monitoring guide",
+      "type": "link",
+      "url": "https://learn.microsoft.com/azure/azure-monitor/visualize/visualize-grafana-overview"
+    }
+  ],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-azureprometheus-datasource",
+        "uid": "${DS_AZURE_PROMETHEUS}"
+      },
+      "description": "Unavailable deployment replicas across the selected AKS cluster.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-azureprometheus-datasource",
+            "uid": "${DS_AZURE_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum(kube_deployment_status_replicas_unavailable{cluster=\"$aksCluster\"})",
+          "instant": true,
+          "legendFormat": "Unavailable",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "AKS unavailable replicas",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azureprometheus-datasource",
+        "uid": "${DS_AZURE_PROMETHEUS}"
+      },
+      "description": "Container restarts during the last 15 minutes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-azureprometheus-datasource",
+            "uid": "${DS_AZURE_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(kube_pod_container_status_restarts_total{cluster=\"$aksCluster\"}[15m]))",
+          "instant": true,
+          "legendFormat": "Restarts",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "AKS restarts / 15m",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "Maximum normalized RU consumption. Split by physical partition in the Cosmos details dashboard.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Maximum",
+            "dimensionFilters": [],
+            "metricName": "NormalizedRUConsumption",
+            "metricNamespace": "Microsoft.DocumentDB/DatabaseAccounts",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$cosmosAccount",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "Cosmos DB normalized RU",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "PostgreSQL storage utilization. Sustained high utilization can lead to write failures.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Maximum",
+            "dimensionFilters": [],
+            "metricName": "storage_percent",
+            "metricNamespace": "Microsoft.DBforPostgreSQL/flexibleServers",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$postgresServer",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "PostgreSQL storage",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "Azure Managed Redis used memory percentage.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Maximum",
+            "dimensionFilters": [],
+            "metricName": "usedmemorypercentage",
+            "metricNamespace": "Microsoft.Cache/redisEnterprise",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$redisResource",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis memory",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "Application Gateway unhealthy backend hosts.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Average",
+            "dimensionFilters": [],
+            "metricName": "UnhealthyHostCount",
+            "metricNamespace": "Microsoft.Network/applicationGateways",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$applicationGateway",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "App Gateway unhealthy hosts",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "Cosmos DB throttled requests. Pair with normalized RU and calculate the rate in production.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 5
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Count",
+            "dimensionFilters": [
+              {
+                "dimension": "StatusCode",
+                "filters": [
+                  "429"
+                ],
+                "operator": "eq"
+              }
+            ],
+            "metricName": "TotalRequests",
+            "metricNamespace": "Microsoft.DocumentDB/DatabaseAccounts",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$cosmosAccount",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "Cosmos DB 429 requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "Azure OpenAI request distribution by status code.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 5
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Sum",
+            "dimensionFilters": [
+              {
+                "dimension": "StatusCode",
+                "filters": [],
+                "operator": "eq"
+              }
+            ],
+            "metricName": "AzureOpenAIRequests",
+            "metricNamespace": "Microsoft.CognitiveServices/accounts",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$openAIAccount",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "Azure OpenAI requests by status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${DS_AZURE_MONITOR}"
+      },
+      "description": "Azure Firewall SNAT port utilization.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 5
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "azureMonitor": {
+            "aggregation": "Maximum",
+            "dimensionFilters": [],
+            "metricName": "SNATPortUtilization",
+            "metricNamespace": "Microsoft.Network/azureFirewalls",
+            "resourceGroup": "$resourceGroup",
+            "resourceName": "$azureFirewall",
+            "subscription": "$subscription",
+            "timeGrain": "auto"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${DS_AZURE_MONITOR}"
+          },
+          "queryType": "Azure Monitor",
+          "refId": "A"
+        }
+      ],
+      "title": "Firewall SNAT utilization",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "azure",
+    "overview",
+    "sample"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Azure Monitor",
+        "multi": false,
+        "name": "DS_AZURE_MONITOR",
+        "options": [],
+        "query": "grafana-azure-monitor-datasource",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Managed Prometheus",
+        "multi": false,
+        "name": "DS_AZURE_PROMETHEUS",
+        "options": [],
+        "query": "grafana-azureprometheus-datasource",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "{구독ID}",
+          "value": "{구독ID}"
+        },
+        "label": "Subscription",
+        "name": "subscription",
+        "options": [
+          {
+            "selected": true,
+            "text": "{구독ID}",
+            "value": "{구독ID}"
+          }
+        ],
+        "query": "{구독ID}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{rg명}",
+          "value": "{rg명}"
+        },
+        "label": "Resource group",
+        "name": "resourceGroup",
+        "options": [
+          {
+            "selected": true,
+            "text": "{rg명}",
+            "value": "{rg명}"
+          }
+        ],
+        "query": "{rg명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{aks명}",
+          "value": "{aks명}"
+        },
+        "label": "AKS cluster",
+        "name": "aksCluster",
+        "options": [
+          {
+            "selected": true,
+            "text": "{aks명}",
+            "value": "{aks명}"
+          }
+        ],
+        "query": "{aks명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{cosmos계정명}",
+          "value": "{cosmos계정명}"
+        },
+        "label": "Cosmos DB",
+        "name": "cosmosAccount",
+        "options": [
+          {
+            "selected": true,
+            "text": "{cosmos계정명}",
+            "value": "{cosmos계정명}"
+          }
+        ],
+        "query": "{cosmos계정명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{postgres서버명}",
+          "value": "{postgres서버명}"
+        },
+        "label": "PostgreSQL",
+        "name": "postgresServer",
+        "options": [
+          {
+            "selected": true,
+            "text": "{postgres서버명}",
+            "value": "{postgres서버명}"
+          }
+        ],
+        "query": "{postgres서버명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{redis명}",
+          "value": "{redis명}"
+        },
+        "label": "Redis",
+        "name": "redisResource",
+        "options": [
+          {
+            "selected": true,
+            "text": "{redis명}",
+            "value": "{redis명}"
+          }
+        ],
+        "query": "{redis명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{openai계정명}",
+          "value": "{openai계정명}"
+        },
+        "label": "Azure OpenAI",
+        "name": "openAIAccount",
+        "options": [
+          {
+            "selected": true,
+            "text": "{openai계정명}",
+            "value": "{openai계정명}"
+          }
+        ],
+        "query": "{openai계정명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{appgw명}",
+          "value": "{appgw명}"
+        },
+        "label": "Application Gateway",
+        "name": "applicationGateway",
+        "options": [
+          {
+            "selected": true,
+            "text": "{appgw명}",
+            "value": "{appgw명}"
+          }
+        ],
+        "query": "{appgw명}",
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "text": "{firewall명}",
+          "value": "{firewall명}"
+        },
+        "label": "Azure Firewall",
+        "name": "azureFirewall",
+        "options": [
+          {
+            "selected": true,
+            "text": "{firewall명}",
+            "value": "{firewall명}"
+          }
+        ],
+        "query": "{firewall명}",
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Azure Infrastructure Overview - Sample",
+  "uid": "azure-infra-overview-sample",
+  "version": 1,
+  "weekStart": ""
+}
